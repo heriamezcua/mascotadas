@@ -49,6 +49,10 @@ button { font: inherit; cursor: pointer; border: 0; border-radius: 12px; min-hei
 .error { color: var(--error); margin: 0; text-align: center; }
 
 #biblioteca { margin-top: 32px; }
+.etiqueta { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips button { min-height: 40px; padding: 6px 14px; border-radius: 999px; background: #fff; color: var(--tinta); border: 1.5px solid #dcd2bd; }
+.chips button[aria-pressed="true"] { background: var(--noche); color: var(--oro); border-color: var(--noche); }
 #lista { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 #lista button { width: 100%; text-align: left; background: rgba(255, 255, 255, .1); color: var(--crema); }
 
@@ -79,6 +83,9 @@ button { font: inherit; cursor: pointer; border: 0; border-radius: 12px; min-hei
 .quiz .suave { background: var(--noche); color: var(--crema); }
 
 .barra { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+#voz { width: auto; min-height: 46px; border: 0; border-radius: 12px; padding: 8px 12px; color: var(--crema); font-size: 16px; }
+#voz option { color: var(--tinta); }
+#reiniciar { font-size: 22px; line-height: 1; padding: 4px 14px; }
 .aviso { background: rgba(242, 195, 91, .16); border-radius: 10px; padding: 8px 12px; font-size: 15px; margin: 0 0 8px; }
 #titulo-libro { font-size: 30px; margin: 8px 0 16px; }
 .pagina { background: var(--crema); color: var(--tinta); border-radius: 18px; overflow: hidden; }
@@ -185,12 +192,3 @@ details p { margin: 8px 0 0; color: #ddebe8; }
   .escena *, .pagina p { animation: none !important; }
 }
 
-.solo-impresion { display: none; }
-
-@media print {
-  body { background: #fff; color: #000; }
-  #inicio, .cabecera, .pie, .barra, .paso, #pagina, .aviso, dialog { display: none !important; }
-  .solo-impresion { display: block; }
-  .escena * { animation: none !important; }
-  .solo-impresion .pagina { break-inside: avoid; background: #fff; color: #000; margin-bottom: 24px; }
-}

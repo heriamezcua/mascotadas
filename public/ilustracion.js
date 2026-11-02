@@ -162,7 +162,7 @@ const CUERPOS = {
     <g transform="translate(48 -88)"><g class="cabeza">
       <path d="M-30 -16 Q-50 12 -34 38 Q-18 24 -14 -12Z" fill="${o}" ${T}/>
       <circle r="38" fill="${c}" ${T}/>
-      <path d="M-22 30 Q4 46 30 34" fill="none" stroke="${collar}" stroke-width="9" stroke-linecap="round"/><circle cx="4" cy="44" r="6" fill="#ffd166" ${T3}/>
+      ${collar ? `<path d="M-22 30 Q4 46 30 34" fill="none" stroke="${collar}" stroke-width="9" stroke-linecap="round"/><circle cx="4" cy="44" r="6" fill="#ffd166" ${T3}/>` : ""}
       <ellipse cx="22" cy="12" rx="24" ry="17" fill="#fff4e6" ${T}/>
       <path class="lengua" d="M20 24 Q22 42 32 36 Q32 28 30 24Z" fill="#ff7a8a" ${T3}/>
       <path d="M30 20 Q24 28 14 22" fill="none" ${T3}/><ellipse cx="38" cy="4" rx="9" ry="7" fill="${TINTA}"/>
@@ -181,7 +181,7 @@ const CUERPOS = {
       <path d="M-30 -14 L-32 -60 L-4 -32Z" fill="${c}" ${T}/><path d="M-26 -22 L-27 -48 L-11 -32Z" fill="#ffb3c1"/>
       <path d="M6 -32 L28 -60 L32 -12Z" fill="${c}" ${T}/><path d="M12 -32 L26 -50 L28 -22Z" fill="#ffb3c1"/>
       <ellipse rx="38" ry="34" fill="${c}" ${T}/>
-      <path d="M-24 26 Q2 40 28 28" fill="none" stroke="${collar}" stroke-width="8" stroke-linecap="round"/><circle cx="2" cy="38" r="5" fill="#ffd166" ${T3}/>
+      ${collar ? `<path d="M-24 26 Q2 40 28 28" fill="none" stroke="${collar}" stroke-width="8" stroke-linecap="round"/><circle cx="2" cy="38" r="5" fill="#ffd166" ${T3}/>` : ""}
       <g class="ojos">${ojo(-10, -4, "#5aa02c")}${ojo(14, -6, "#5aa02c")}</g>
       <path d="M2 8 L10 8 L6 13Z" fill="#ff8fab" ${T3}/><path d="M6 13 Q2 20 -4 16 M6 13 Q10 20 16 16" fill="none" ${T3}/>
       <path d="M18 10 H44 M18 16 L42 22 M-8 10 H-30 M-8 16 L-28 22" stroke="${TINTA}" stroke-width="2" stroke-linecap="round"/>
@@ -197,7 +197,7 @@ const CUERPOS = {
       <g class="orejas"><ellipse cx="-12" cy="-58" rx="12" ry="34" fill="${c}" ${T} transform="rotate(-12 -12 -30)"/><ellipse cx="-12" cy="-58" rx="6" ry="24" fill="#ffb3c1" transform="rotate(-12 -12 -30)"/>
         <ellipse cx="14" cy="-60" rx="12" ry="34" fill="${o}" ${T} transform="rotate(10 14 -30)"/><ellipse cx="14" cy="-60" rx="6" ry="24" fill="#ffb3c1" transform="rotate(10 14 -30)"/></g>
       <circle r="34" fill="${c}" ${T}/>
-      <path d="M-22 24 Q2 38 26 26" fill="none" stroke="${collar}" stroke-width="8" stroke-linecap="round"/><circle cx="2" cy="35" r="5" fill="#ffd166" ${T3}/>
+      ${collar ? `<path d="M-22 24 Q2 38 26 26" fill="none" stroke="${collar}" stroke-width="8" stroke-linecap="round"/><circle cx="2" cy="35" r="5" fill="#ffd166" ${T3}/>` : ""}
       <g class="ojos">${ojo(-10, -6)}${ojo(14, -8)}</g>
       <ellipse cx="6" cy="8" rx="6" ry="4" fill="#ff8fab" ${T3}/>
       <path d="M0 14 H12 V22 H0Z" fill="#fff" ${T3}/><path d="M6 14 V22" stroke="${TINTA}" stroke-width="2"/>
@@ -213,7 +213,8 @@ function oscurecer(hex) {
 
 function protagonista({ especie, color, collar }) {
   const c = /^#[0-9a-f]{6}$/i.test(color) ? color : "#c98a4f";
-  const cuerpo = (CUERPOS[especie] || CUERPOS.perro)(c, oscurecer(c), collar || "#d9503f");
+  if (!CUERPOS[especie]) return ""; // Sin dibujo propio, mejor sin mascota que con la de otra especie.
+  const cuerpo = CUERPOS[especie](c, oscurecer(c), collar === "ninguno" ? null : collar || "#d9503f");
   return `<g transform="translate(330 404)">
     <ellipse class="sombra" cy="0" rx="100" ry="14" fill="${TINTA}" opacity=".2"/>
     <g class="entra"><g class="bota"><g transform="scale(1.65)">${cuerpo}</g></g></g></g>`;

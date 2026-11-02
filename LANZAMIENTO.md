@@ -54,7 +54,7 @@ Cada valor va como variable en Railway, nunca en el repositorio ni en el chat. L
 - [ ] Activar en Stripe el aviso por email antes de que acabe la prueba (Configuración → Billing → Suscripciones y emails).
 - [ ] Crear 3 historias con Opus y comprobar que el cuarto pide Premium.
 - [ ] Revisar varios historias a mano: calidad, humor y datos raros en la manía.
-- [ ] Escuchar una historia entero y guardarlo en PDF.
+- [ ] Escuchar una historia entera, pausarla, continuarla y repetir una página con ↺.
 - [ ] Medir el coste real por historia y compararlo con los 0,19 € estimados.
 - [ ] Pasar a Premium, cancelar desde el portal y borrar la cuenta.
 - [ ] Cambiar a las claves reales y hacer un pago real propio.

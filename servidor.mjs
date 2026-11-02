@@ -9,7 +9,7 @@ if (existsSync(join(raiz, ".env.local"))) process.loadEnvFile(join(raiz, ".env.l
 
 const { escribirHistoria, hayIA } = await import("./historias.mjs");
 const { narrar, hayVoz } = await import("./voz.mjs");
-const { pintarFondos, hayImagenes, claveFicha } = await import("./fondos.mjs");
+const { pintarFondos, hayImagenes, claveFicha, ESPECIES } = await import("./fondos.mjs");
 const datos = await import("./datos.mjs");
 const pagos = await import("./pagos.mjs");
 const { inicioDelPeriodo, restantes } = await import("./planes.mjs");
@@ -53,7 +53,9 @@ async function pintarEnSegundoPlano(usuario, historia) {
 function limpiar(cuerpo) {
   const mascota = {};
   for (const [campo, largo] of Object.entries(CAMPOS)) mascota[campo] = String(cuerpo[campo] ?? "").trim().slice(0, largo);
+  if (!ESPECIES[mascota.especie]) mascota.especie = "perro";
   for (const campo of COLORES) mascota[campo] = /^#[0-9a-f]{6}$/i.test(cuerpo[campo]) ? cuerpo[campo] : "#888888";
+  if (cuerpo.collar === "ninguno") mascota.collar = "ninguno";
   return mascota.nombre && mascota.mania ? mascota : null;
 }
 
@@ -135,12 +137,12 @@ const rutas = {
 
   // La voz solo lee páginas de las historias del propio usuario: la clave no sirve para narrar otra cosa.
   "POST /api/voz": async (req, res, usuario) => {
-    const { historia: id, pagina } = await leerCuerpo(req);
+    const { historia: id, pagina, voz } = await leerCuerpo(req);
     const { plan } = await datos.leerPerfil(usuario.id);
     const historia = plan ? await datos.leerHistoria(id, usuario.id) : null;
     const texto = historia?.paginas[pagina]?.texto;
     if (!texto) return responder(res, 404, { error: "No existe" });
-    const audio = await narrar(usuario.id, texto);
+    const audio = await narrar(usuario.id, texto, voz);
     res.writeHead(200, { "Content-Type": "audio/mpeg", ...CABECERAS });
     res.end(audio);
   },

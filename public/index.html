@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mascotadas · La vida secreta de tu mascota</title>
-  <meta name="description" content="Historias divertidas, ilustradas y narradas, protagonizadas por tu perro, tu gato o tu conejo. Listas en un minuto para compartir.">
+  <meta name="description" content="Historias divertidas, ilustradas y narradas, protagonizadas por tu mascota: perro, gato, conejo, hámster, loro, tortuga y muchas más. Listas en un minuto para compartir.">
   <meta property="og:title" content="Mascotadas · La vida secreta de tu mascota">
   <meta property="og:description" content="Tu mascota, protagonista de su propia historia ilustrada y narrada.">
   <meta property="og:type" content="website">
@@ -55,15 +55,29 @@
     <section class="seccion" id="crear">
       <h2>Crea su historia</h2>
       <form id="formulario" autocomplete="off">
+        <div id="mis-mascotas" hidden>
+          <p class="etiqueta">Sus mascotas</p>
+          <div id="lista-mascotas" class="chips"></div>
+        </div>
         <label>¿Cómo se llama?<input name="nombre" maxlength="30" required placeholder="Toby"></label>
         <label>¿Qué es?
-          <select name="especie"><option value="perro">Un perro</option><option value="gato">Un gato</option><option value="conejo">Un conejo</option></select>
+          <select name="especie">
+            <option value="perro">Un perro</option><option value="gato">Un gato</option><option value="conejo">Un conejo</option>
+            <option value="hamster">Un hámster</option><option value="cobaya">Una cobaya</option><option value="chinchilla">Una chinchilla</option>
+            <option value="huron">Un hurón</option><option value="erizo">Un erizo</option><option value="cerdito">Un cerdito</option>
+            <option value="caballo">Un caballo</option><option value="periquito">Un periquito</option><option value="loro">Un loro</option>
+            <option value="tortuga">Una tortuga</option><option value="pez">Un pez</option>
+            <option value="serpiente">Una serpiente</option><option value="tarantula">Una tarántula</option>
+          </select>
         </label>
         <label>¿Cómo es?
           <select name="personalidad">
             <option value="muy dramático">Dramático</option><option value="un genio incomprendido">Genio incomprendido</option>
             <option value="vago profesional">Vago profesional</option><option value="valiente sin motivo">Valiente sin motivo</option>
             <option value="un cotilla">Cotilla</option><option value="un tragón sin remedio">Tragón sin remedio</option>
+            <option value="un miedica de campeonato">Miedica</option><option value="juguetón sin descanso">Juguetón</option>
+            <option value="un pegajoso incurable">Pegajoso</option><option value="presumido como una estrella">Presumido</option>
+            <option value="un gruñón con buen corazón">Gruñón</option>
           </select>
         </label>
         <label>¿Cuál es su manía?<input name="mania" maxlength="80" required placeholder="robar calcetines y esconderlos en el sofá"></label>
@@ -71,16 +85,18 @@
           <select name="tono">
             <option value="comedia">Comedia</option><option value="película de espías">Espías</option>
             <option value="detective">Detective</option><option value="epopeya">Epopeya</option><option value="culebrón">Culebrón</option>
+            <option value="documental animal">Documental</option><option value="ciencia ficción">Ciencia ficción</option>
+            <option value="aventura pirata">Piratas</option><option value="miedo para niños">Miedo suave</option>
           </select>
         </label>
         <fieldset>
           <legend>Así es en la historia</legend>
           <div class="fila">
             <label>Color
-              <select name="color"><option value="#c98a4f">Canela</option><option value="#2e2a2a">Negro</option><option value="#efe6da">Blanco</option><option value="#8d8d99">Gris</option><option value="#e08a3c">Naranja</option></select>
+              <select name="color"><option value="#c98a4f">Canela</option><option value="#2e2a2a">Negro</option><option value="#efe6da">Blanco</option><option value="#8d8d99">Gris</option><option value="#e08a3c">Naranja</option><option value="#7a5230">Marrón</option><option value="#5fae4e">Verde</option><option value="#4a90d9">Azul</option><option value="#f2c94c">Amarillo</option></select>
             </label>
-            <label>Collar
-              <select name="collar"><option value="#d9503f">Rojo</option><option value="#3f7fd9">Azul</option><option value="#3fa37a">Verde</option><option value="#e8a42c">Amarillo</option></select>
+            <label>Collar o lazo
+              <select name="collar"><option value="#d9503f">Rojo</option><option value="#3f7fd9">Azul</option><option value="#3fa37a">Verde</option><option value="#e8a42c">Amarillo</option><option value="ninguno">Sin collar ni lazo</option></select>
             </label>
           </div>
         </fieldset>
@@ -110,7 +126,7 @@
       <h2>Preguntas frecuentes</h2>
       <details><summary>¿Quién escribe las historias?</summary><p>Las escribe una inteligencia artificial y la voz también es sintética. Son ficción y humor: tu mascota no ha robado de verdad nada. Probablemente.</p></details>
       <details><summary>¿Qué datos pedís?</summary><p>Tu email y lo que nos cuentas de tu mascota. No pedimos fotos. Puedes borrar tu cuenta y sus historias cuando quieras.</p></details>
-      <details><summary>¿Puedo compartirlas?</summary><p>Claro: para eso están. Guárdala en PDF y enséñasela a quien quieras.</p></details>
+      <details><summary>¿Puedo compartirlas?</summary><p>Claro: para eso están. Ábrela en tu móvil y enséñasela a quien quieras, con su narración incluida.</p></details>
       <details><summary>¿Cómo cancelo?</summary><p>Desde «Mi suscripción», en dos clics. Si cancelas durante los 3 días de prueba, no se te cobra nada.</p></details>
     </section>
   </main>
@@ -132,7 +148,11 @@
     <div class="barra">
       <button type="button" id="volver" class="suave">← Volver</button>
       <button type="button" id="leer" class="suave">▶ Escuchar</button>
-      <button type="button" id="imprimir" class="suave">Guardar en PDF</button>
+      <select id="voz" class="suave" aria-label="Voz de la narración">
+        <option value="espana-hombre">Voz: España, él</option><option value="espana-mujer">Voz: España, ella</option>
+        <option value="latam-hombre">Voz: latino, él</option><option value="latam-mujer">Voz: latina, ella</option>
+      </select>
+      <button type="button" id="reiniciar" class="suave" aria-label="Narrar esta página desde el principio" title="Narrar esta página desde el principio">↺</button>
     </div>
     <p id="aviso-muestra" class="aviso" hidden>Historia de muestra para pruebas.</p>
     <h2 id="titulo-libro"></h2>
@@ -142,7 +162,6 @@
       <span id="contador"></span>
       <button type="button" id="siguiente" class="suave">Siguiente</button>
     </div>
-    <div id="todas" class="solo-impresion"></div>
   </main>
 
   <footer class="pie">

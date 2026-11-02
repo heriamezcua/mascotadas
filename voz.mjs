@@ -1,7 +1,13 @@
 import { createHash } from "node:crypto";
 import { guardarAudio, leerAudio } from "./datos.mjs";
 
-const VOZ = process.env.MASCOTADAS_VOZ || "Ril2RJBy9NBSOWRuV8uO";
+// Voces de la biblioteca de ElevenLabs que se pueden elegir al escuchar.
+export const VOCES = {
+  "espana-hombre": process.env.MASCOTADAS_VOZ || "Ril2RJBy9NBSOWRuV8uO", // Marco Aurelio
+  "espana-mujer": "RgXx32WYOGrd7gFNifSf", // Eva Dorado
+  "latam-hombre": "sKgg4MPUDBy69X7iv3fA", // Alejandro Durán
+  "latam-mujer": "qBvury71WUJfVeT1STkG", // Samanta
+};
 const MODELO = process.env.MASCOTADAS_MODELO_VOZ || "eleven_v4";
 
 export function hayVoz() {
@@ -9,8 +15,9 @@ export function hayVoz() {
 }
 
 // Cada texto se paga una vez: releer una historia sale del almacén.
-export async function narrar(usuario, texto) {
+export async function narrar(usuario, texto, voz) {
   if (!hayVoz()) throw new Error("Falta la clave de ElevenLabs");
+  const VOZ = VOCES[voz] ?? VOCES["espana-hombre"];
 
   const huella = createHash("sha256").update(`${VOZ}|${MODELO}|${texto}`).digest("hex");
   const guardado = await leerAudio(usuario, huella);

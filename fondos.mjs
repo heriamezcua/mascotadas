@@ -8,15 +8,36 @@ const ESTILO =
   "Children's cartoon illustration. Flat toon style with thick dark purple-black outlines, " +
   "bold saturated colors, simple rounded shapes and soft cel shading, like a modern 2D animated series.";
 
-const ESPECIES = { perro: "dog", gato: "cat", conejo: "rabbit" };
+// Especie en inglés, de qué está cubierta y qué lleva puesto del color del "collar".
+export const ESPECIES = {
+  perro: ["dog", "fur", "collar"],
+  gato: ["cat", "fur", "collar"],
+  conejo: ["rabbit", "fur", "collar"],
+  hamster: ["hamster", "fur", "collar"],
+  cobaya: ["guinea pig", "fur", "collar"],
+  chinchilla: ["chinchilla", "fur", "collar"],
+  huron: ["ferret", "fur", "collar"],
+  erizo: ["hedgehog", "spines", "little bow tie"],
+  cerdito: ["mini pig", "skin", "collar"],
+  caballo: ["horse", "coat", "halter"],
+  periquito: ["budgie", "feathers", "little bow tie"],
+  loro: ["parrot", "feathers", "little bow tie"],
+  tortuga: ["turtle", "shell", "little bow tie"],
+  pez: ["goldfish", "scales", "little bow tie"],
+  serpiente: ["friendly snake", "scales", "little bow tie"],
+  tarantula: ["friendly fluffy tarantula with eight legs always visible in every pose", "hairy body", "little bow tie"],
+};
 
 export function hayImagenes() {
   return Boolean(process.env.GEMINI_API_KEY);
 }
 
 function quien(mascota) {
-  return `a ${ESPECIES[mascota.especie] ?? "pet"} named ${mascota.nombre}, fur color ${mascota.color} (hex), ` +
-    `wearing a collar colored ${mascota.collar} (hex). Personality: ${mascota.personalidad}.`;
+  const [animal, cubierta, accesorio] = ESPECIES[mascota.especie] ?? ESPECIES.perro;
+  const lleva = mascota.collar === "ninguno"
+    ? "wearing no collar, bow or any accessory"
+    : `wearing a ${accesorio} colored ${mascota.collar} (hex)`;
+  return `a ${animal} named ${mascota.nombre}, ${cubierta} color ${mascota.color} (hex), ${lleva}. Personality: ${mascota.personalidad}.`;
 }
 
 // La misma mascota descrita igual reutiliza su ficha en todas sus historias.

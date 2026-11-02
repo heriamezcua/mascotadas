@@ -88,6 +88,7 @@ function pintarCuenta() {
 
   const historias = cuenta?.historias ?? [];
   $("biblioteca").hidden = historias.length === 0;
+  pintarMascotas(historias);
   $("saldo").textContent = !cuenta?.plan
     ? ""
     : cuenta.plan === "premium"
@@ -102,6 +103,49 @@ function pintarCuenta() {
     li.append(boton);
     return li;
   }));
+}
+
+const RASGOS = ["nombre", "especie", "personalidad", "mania", "color", "collar"];
+
+// Las mascotas guardadas salen de sus historias: la más reciente de cada nombre y especie.
+function misMascotas(historias) {
+  const vistas = new Map();
+  for (const { mascota } of historias) {
+    const clave = `${mascota.nombre.toLowerCase()}|${mascota.especie}`;
+    if (!vistas.has(clave)) vistas.set(clave, mascota);
+  }
+  return [...vistas.values()];
+}
+
+function nombreEspecie(especie) {
+  const opcion = $("formulario").elements.especie.querySelector(`option[value="${especie}"]`);
+  return opcion ? opcion.textContent.replace(/^(Un|Una) /, "") : especie;
+}
+
+function elegirMascota(mascota, chip) {
+  const formulario = $("formulario");
+  for (const campo of RASGOS) {
+    const valor = mascota?.[campo] ?? formulario.elements[campo].querySelector?.("option")?.value ?? "";
+    formulario.elements[campo].value = valor;
+  }
+  for (const otro of $("lista-mascotas").children) otro.setAttribute("aria-pressed", String(otro === chip));
+}
+
+function pintarMascotas(historias) {
+  const mascotas = misMascotas(historias);
+  $("mis-mascotas").hidden = mascotas.length === 0;
+  const nueva = document.createElement("button");
+  nueva.type = "button";
+  nueva.textContent = "+ Nueva";
+  nueva.addEventListener("click", () => elegirMascota(null, nueva));
+  $("lista-mascotas").replaceChildren(...mascotas.map((mascota) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.setAttribute("aria-pressed", "false");
+    chip.textContent = `${mascota.nombre} · ${nombreEspecie(mascota.especie)}`;
+    chip.addEventListener("click", () => elegirMascota(mascota, chip));
+    return chip;
+  }), nueva);
 }
 
 async function refrescar() {
@@ -134,16 +178,6 @@ function abrir(historia) {
   estado.pagina = 0;
   $("titulo-libro").textContent = historia.titulo;
   $("aviso-muestra").hidden = historia.modo !== "muestra";
-  $("todas").replaceChildren(...historia.paginas.map((datos, i) => {
-    const hoja = document.createElement("article");
-    hoja.className = "pagina";
-    hoja.innerHTML = ilustrar(datos, historia.mascota);
-    const texto = document.createElement("p");
-    texto.textContent = datos.texto;
-    hoja.append(texto);
-    pintarFondo(hoja, historia, i);
-    return hoja;
-  }));
   pintarPagina();
   mostrar("libro");
 }
@@ -160,10 +194,17 @@ function parar() {
   $("leer").textContent = "▶ Escuchar";
 }
 
+// Pausar conserva el audio de la página, así "Continuar" sigue en el mismo segundo.
+function pausar() {
+  estado.leyendo = false;
+  estado.audio?.pause();
+  $("leer").textContent = "▶ Continuar";
+}
+
 async function leerPagina() {
   const respuesta = await api("/api/voz", {
     method: "POST",
-    body: JSON.stringify({ historia: estado.actual.id, pagina: estado.pagina }),
+    body: JSON.stringify({ historia: estado.actual.id, pagina: estado.pagina, voz: $("voz").value }),
   });
   if (!estado.leyendo) return;
   if (!respuesta.ok) {
@@ -340,12 +381,41 @@ $("borrar").addEventListener("click", async () => {
 $("anterior").addEventListener("click", () => { parar(); irA(estado.pagina - 1); });
 $("siguiente").addEventListener("click", () => { parar(); irA(estado.pagina + 1); });
 $("volver").addEventListener("click", () => { parar(); mostrar("inicio"); });
-$("imprimir").addEventListener("click", () => window.print());
-$("leer").addEventListener("click", () => {
-  if (estado.leyendo) return parar();
+// Vuelve a narrar la página actual desde su primer segundo.
+const VOZ = "mascotadas.voz";
+try {
+  const guardada = localStorage.getItem(VOZ);
+  if ([...$("voz").options].some((o) => o.value === guardada)) $("voz").value = guardada;
+} catch {
+  // Sin almacenamiento se usa la voz por defecto.
+}
+// Al cambiar de voz, la página vuelve a empezar con la nueva si se estaba escuchando.
+$("voz").addEventListener("change", () => {
+  try {
+    localStorage.setItem(VOZ, $("voz").value);
+  } catch {}
+  const seguia = estado.leyendo;
+  parar();
+  if (!seguia) return;
   estado.leyendo = true;
-  $("leer").textContent = "■ Parar";
+  $("leer").textContent = "⏸ Pausar";
   leerPagina();
+});
+
+$("reiniciar").addEventListener("click", () => {
+  const cargando = estado.leyendo && !estado.audio; // Ya se está pidiendo el audio: empezará desde el principio igual.
+  estado.leyendo = true;
+  $("leer").textContent = "⏸ Pausar";
+  if (!estado.audio) return cargando || leerPagina();
+  estado.audio.currentTime = 0;
+  estado.audio.play();
+});
+$("leer").addEventListener("click", () => {
+  if (estado.leyendo) return pausar();
+  estado.leyendo = true;
+  $("leer").textContent = "⏸ Pausar";
+  if (estado.audio) estado.audio.play();
+  else leerPagina();
 });
 
 async function iniciar() {
@@ -356,6 +426,8 @@ async function iniciar() {
 
   estado.config = await (await fetch("/api/estado")).json();
   $("leer").hidden = !estado.config.voz;
+  $("reiniciar").hidden = !estado.config.voz;
+  $("voz").hidden = !estado.config.voz;
 
   if (!estado.config.local) {
     estado.cliente = window.supabase.createClient(estado.config.supabaseUrl, estado.config.supabaseAnon);
