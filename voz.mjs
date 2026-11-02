@@ -4,8 +4,8 @@ import { guardarAudio, leerAudio } from "./datos.mjs";
 // Voces de la biblioteca de ElevenLabs que se pueden elegir al escuchar.
 export const VOCES = {
   "espana-hombre": process.env.MASCOTADAS_VOZ || "Ril2RJBy9NBSOWRuV8uO", // Marco Aurelio
-  "espana-mujer": "RgXx32WYOGrd7gFNifSf", // Eva Dorado
-  "latam-hombre": "sKgg4MPUDBy69X7iv3fA", // Alejandro Durán
+  "espana-mujer": "yiWEefwu5z3DQCM79clN", // Laura López
+  "latam-hombre": "vPrtQbTwtAoP87VnQmID", // Mateo Aragón
   "latam-mujer": "qBvury71WUJfVeT1STkG", // Samanta
 };
 const MODELO = process.env.MASCOTADAS_MODELO_VOZ || "eleven_v4";
@@ -15,15 +15,16 @@ export function hayVoz() {
 }
 
 // Cada texto se paga una vez: releer una historia sale del almacén.
+// Si no está guardado, devuelve el audio en streaming según lo genera ElevenLabs, para que empiece a sonar en un segundo.
 export async function narrar(usuario, texto, voz) {
   if (!hayVoz()) throw new Error("Falta la clave de ElevenLabs");
   const VOZ = VOCES[voz] ?? VOCES["espana-hombre"];
 
   const huella = createHash("sha256").update(`${VOZ}|${MODELO}|${texto}`).digest("hex");
   const guardado = await leerAudio(usuario, huella);
-  if (guardado) return guardado;
+  if (guardado) return { audio: guardado };
 
-  const respuesta = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOZ}?output_format=mp3_44100_128`, {
+  const respuesta = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOZ}/stream?output_format=mp3_44100_128`, {
     method: "POST",
     headers: { "xi-api-key": process.env.ELEVENLABS_API_KEY, "content-type": "application/json" },
     body: JSON.stringify({
@@ -35,7 +36,5 @@ export async function narrar(usuario, texto, voz) {
   });
   if (!respuesta.ok) throw new Error(`ElevenLabs respondió ${respuesta.status}: ${(await respuesta.text()).slice(0, 200)}`);
 
-  const audio = Buffer.from(await respuesta.arrayBuffer());
-  await guardarAudio(usuario, huella, audio);
-  return audio;
+  return { flujo: respuesta.body, guardar: (audio) => guardarAudio(usuario, huella, audio) };
 }

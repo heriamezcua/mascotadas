@@ -44,7 +44,10 @@ Cada valor va como variable en Railway, nunca en el repositorio ni en el chat. L
 
 ## Textos legales
 
-- [ ] Sustituir `[NOMBRE Y APELLIDOS]`, `[NIF]`, `[DOMICILIO FISCAL]` y `[EMAIL DE CONTACTO]` en `public/aviso-legal.html`, `public/condiciones.html` y `public/privacidad.html`.
+- [x] Datos del titular puestos en el aviso legal, las condiciones y la privacidad.
+- [x] Correo `contacto@mascotadas.com` creado en Cloudflare y reenviado a Gmail (comprobado).
+- [ ] Filtro en Gmail para que lo enviado a `contacto@mascotadas.com` nunca vaya a spam.
+- [ ] Si se añade Resend u otro proveedor (correo, analítica…), añadirlo en el apartado 6 de `public/privacidad.html`.
 - [ ] Revisarlos con un profesional: son un borrador.
 
 ## Prueba final, con claves de prueba de Stripe

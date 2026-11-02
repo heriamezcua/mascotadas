@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
@@ -19,6 +20,7 @@ const ANFITRION = process.env.PORT ? "0.0.0.0" : "127.0.0.1";
 const TIPOS = {
   ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".svg": "image/svg+xml", ".txt": "text/plain; charset=utf-8", ".xml": "application/xml",
+  ".jpg": "image/jpeg", ".mp3": "audio/mpeg", ".woff2": "font/woff2",
 };
 const CAMPOS = { nombre: 30, especie: 10, personalidad: 30, mania: 80, tono: 20 };
 const COLORES = ["color", "collar"];
@@ -31,6 +33,10 @@ const CABECERAS = {
     `connect-src 'self' ${process.env.SUPABASE_URL || ""}; frame-ancestors 'none'; base-uri 'self'`,
 };
 
+const pases = new Map(); // Pases de audio: el reproductor no puede mandar la sesión.
+setInterval(() => {
+  for (const [pase, { caduca }] of pases) if (caduca < Date.now()) pases.delete(pase);
+}, 60000).unref();
 const generando = new Set(); // Impide saltarse el máximo pidiendo dos historias a la vez.
 
 // Si un fondo falla, se marca para que la página se quede con el escenario dibujado y no lo siga esperando.
@@ -136,15 +142,35 @@ const rutas = {
   },
 
   // La voz solo lee páginas de las historias del propio usuario: la clave no sirve para narrar otra cosa.
+  // Devuelve un pase de un rato para que el reproductor del navegador pida el audio sin cabecera de sesión.
   "POST /api/voz": async (req, res, usuario) => {
     const { historia: id, pagina, voz } = await leerCuerpo(req);
     const { plan } = await datos.leerPerfil(usuario.id);
     const historia = plan ? await datos.leerHistoria(id, usuario.id) : null;
     const texto = historia?.paginas[pagina]?.texto;
     if (!texto) return responder(res, 404, { error: "No existe" });
-    const audio = await narrar(usuario.id, texto, voz);
+    const pase = randomUUID();
+    pases.set(pase, { usuario: usuario.id, texto, voz, caduca: Date.now() + 10 * 60000 });
+    responder(res, 200, { url: `/api/escuchar?pase=${pase}` });
+  },
+
+  "GET /api/escuchar": async (req, res) => {
+    const pase = pases.get(new URL(req.url, "http://localhost").searchParams.get("pase"));
+    if (!pase || pase.caduca < Date.now()) return responder(res, 404, { error: "No existe" });
+    const { audio, flujo, guardar } = await narrar(pase.usuario, pase.texto, pase.voz);
+    if (audio) {
+      res.writeHead(200, { "Content-Type": "audio/mpeg", "Content-Length": audio.length, ...CABECERAS });
+      return res.end(audio);
+    }
+    // Se lee hasta el final aunque el oyente se vaya, para guardar la página entera y no pagarla dos veces.
     res.writeHead(200, { "Content-Type": "audio/mpeg", ...CABECERAS });
-    res.end(audio);
+    const trozos = [];
+    for await (const trozo of flujo) {
+      trozos.push(trozo);
+      if (!res.destroyed) res.write(trozo);
+    }
+    res.end();
+    await guardar(Buffer.concat(trozos));
   },
 
   "POST /api/pago": async (req, res, usuario) => {
@@ -166,7 +192,7 @@ const rutas = {
   },
 };
 
-const PUBLICAS = new Set(["GET /api/estado"]);
+const PUBLICAS = new Set(["GET /api/estado", "GET /api/escuchar"]); // Escuchar se autoriza con su pase.
 
 async function atenderApi(req, res, ruta) {
   if (ruta === "/api/stripe") {

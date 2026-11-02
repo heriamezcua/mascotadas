@@ -3,209 +3,578 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Mascotadas · La vida secreta de tu mascota</title>
-  <meta name="description" content="Historias divertidas, ilustradas y narradas, protagonizadas por tu mascota: perro, gato, conejo, hámster, loro, tortuga y muchas más. Listas en un minuto para compartir.">
-  <meta property="og:title" content="Mascotadas · La vida secreta de tu mascota">
-  <meta property="og:description" content="Tu mascota, protagonista de su propia historia ilustrada y narrada.">
+  <title>Mascotadas · Cuentos ilustrados y narrados con su mascota</title>
+  <meta name="description" content="Cuéntenos cómo es su mascota y le creamos una comedia de 6 páginas, dibujada y narrada. Perro, gato, conejo, hámster, loro, tortuga y muchas más.">
+  <meta property="og:title" content="Mascotadas · ¿Qué hace tu mascota cuando te vas de casa?">
+  <meta property="og:description" content="Su mascota, protagonista de su propio cuento ilustrado y narrado.">
   <meta property="og:type" content="website">
   <link rel="canonical" href="https://mascotadas.com/">
   <link rel="icon" href="icono.svg" type="image/svg+xml">
+  <link rel="preload" href="fuentes/baloo-2-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fuentes/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="estilos.css">
   <script src="vendor/supabase.js" defer></script>
 </head>
-<body>
-  <nav class="cabecera">
-    <a class="marca" href="/">Mascotadas</a>
-    <div id="menu-cuenta" class="menu">
-      <button type="button" id="entrar" class="suave">Entrar</button>
-      <button type="button" id="gestionar" class="suave" hidden>Mi suscripción</button>
-      <button type="button" id="salir" class="suave" hidden>Salir</button>
+<body class="en-portada">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-logo" viewBox="0 0 44 44"><circle cx="22" cy="22" r="19.5" fill="#FF8A2B" stroke="currentColor" stroke-width="3"/><g fill="#2B1840"><ellipse cx="22" cy="27.5" rx="7.5" ry="6"/><ellipse cx="12.5" cy="19" rx="3" ry="3.9"/><ellipse cx="18" cy="13" rx="3" ry="3.9"/><ellipse cx="26" cy="13" rx="3" ry="3.9"/><ellipse cx="31.5" cy="19" rx="3" ry="3.9"/></g></symbol>
+      <symbol id="i-flecha" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-atras" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-izq" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-der" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M7.5 4.5v15l12.5-7.5z" fill="currentColor"/></symbol>
+      <symbol id="i-pausa" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.5" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="currentColor"/></symbol>
+      <symbol id="i-repetir" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v5h5"/></g></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-tick" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-cruz" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+      <symbol id="i-mas" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+      <symbol id="i-estrella" viewBox="0 0 24 24"><path d="M12 3l2.2 5.3L20 9l-4.4 3.8L17 18.5 12 15.6 7 18.5l1.4-5.7L4 9l5.8-.7z" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-candado" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></g></symbol>
+      <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-persona" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="4"/><path d="M4.5 20c1.2-4 4-5.5 7.5-5.5s6.3 1.5 7.5 5.5"/></g></symbol>
+      <symbol id="i-libro" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5C5.5 4 8.5 4 12 6c3.5-2 6.5-2 9-.5v13c-2.5-1.5-5.5-1.5-9 .5-3.5-2-6.5-2-9-.5z"/><path d="M12 6v13"/></g></symbol>
+      <symbol id="i-pincel" viewBox="0 0 32 32"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4l8 8-10 10-8-8z" fill="#B69CFF"/><path d="M10 14c-4 0-6 3-6 6 0 4-1 6-1 6s7 1 10-2c2-2 2-5 0-7"/></g></symbol>
+      <symbol id="i-alerta" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#C62F24"/><path d="M12 7v6M12 16.5v.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></symbol>
+      <symbol id="i-sin-voz" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l4 6M21 9l-4 6"/></g></symbol>
+    </defs>
+  </svg>
+
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+
+  <header class="cabecera">
+    <div class="cabecera-dentro">
+      <a class="marca" href="/" id="marca" aria-label="Mascotadas, inicio">
+        <svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>
+        <span class="d">Mascotadas</span>
+      </a>
+      <nav aria-label="Principal" class="menu">
+        <a class="enlace-menu solo-portada" href="#como">Cómo funciona</a>
+        <a class="enlace-menu solo-portada" href="#precios">Precios</a>
+        <a class="enlace-menu solo-portada" href="#preguntas">Preguntas</a>
+        <button type="button" id="entrar" class="btn btn-sm">Entrar</button>
+        <button type="button" id="mi-cuenta" class="icono" aria-label="Mi cuenta y suscripción" hidden>
+          <svg width="24" height="24" aria-hidden="true"><use href="#i-persona"/></svg>
+        </button>
+      </nav>
     </div>
-  </nav>
+  </header>
 
-  <main id="inicio">
-    <header class="portada">
-      <h1>¿Qué hace tu mascota cuando te vas de casa?</h1>
-      <p class="sub">Cuéntanos cómo es y te lo revelamos: una historia ilustrada y narrada que no podrás evitar enseñar a todo el mundo. Lista en un minuto.</p>
-      <a class="principal enlace-boton" href="#crear">Crear su historia</a>
-      <p class="garantia">3 días gratis · Después, 4,99 € al mes · Cancela cuando quieras</p>
-    </header>
+  <div id="contenido">
 
-    <section id="biblioteca" hidden>
-      <h2>Sus historias</h2>
-      <p id="saldo" class="sub"></p>
-      <ul id="lista"></ul>
+  <!-- ===== Portada ===== -->
+  <main id="portada" class="vista">
+    <section class="hero ancho">
+      <div class="hero-texto">
+        <span class="pegatina">
+          <svg width="20" height="20" aria-hidden="true"><use href="#i-libro"/></svg>
+          Cuentos ilustrados y narrados
+        </span>
+        <h1 class="d">¿Qué hace tu mascota cuando te vas de casa?</h1>
+        <p class="entradilla">Cuéntenos cómo es y le creamos una comedia de 6 páginas, dibujada y narrada, con su mascota de protagonista.</p>
+        <div class="hero-accion">
+          <button type="button" class="btn btn-p btn-xl" data-ir="crear">
+            Crear su primera historia
+            <svg width="22" height="22" aria-hidden="true"><use href="#i-flecha"/></svg>
+          </button>
+          <span class="precio-corto">3 días gratis · luego 4,99 €/mes</span>
+        </div>
+      </div>
+
+      <div class="hero-ejemplo">
+        <div class="bocadillo bota" aria-hidden="true">¡Shhh! Que no se entere…</div>
+        <figure class="ejemplo inclinado">
+          <img src="img/ejemplo.jpg" width="577" height="325" alt="Ilustración: Vilma, una gata gris, abre un cofre en un castillo en ruinas y encuentra un cojín de terciopelo.">
+          <figcaption>
+            <p class="d ejemplo-titulo">VILMA Y EL TESORO DEL SOFÁ PERDIDO</p>
+            <p>Dentro no había oro: había un cojín de terciopelo del siglo dieciséis, suave, blandito, perfecto para arañar. Por fin. Ronroneó como un motor de barca.</p>
+            <div class="ejemplo-pie">
+              <button type="button" id="ejemplo-escuchar" class="btn btn-sm btn-menta">
+                <svg width="20" height="20" aria-hidden="true"><use href="#i-play"/></svg>
+                <span>Escuchar</span>
+              </button>
+              <span class="etiqueta-pagina">Página 5 de 6</span>
+            </div>
+          </figcaption>
+        </figure>
+      </div>
+
+      <svg class="huellas" viewBox="0 0 260 60" width="260" height="60" aria-hidden="true">
+        <g><path d="M20 38c-6 0-9 5-9 8s3 4 9 4 9-1 9-4-3-8-9-8zM11 34a3 4 0 1 0 0.1 0zM17 28a3 4 0 1 0 .1 0zM24 28a3 4 0 1 0 .1 0zM30 34a3 4 0 1 0 .1 0z"/></g>
+        <g><path d="M85 22c-6 0-9 5-9 8s3 4 9 4 9-1 9-4-3-8-9-8zM76 18a3 4 0 1 0 .1 0zM82 12a3 4 0 1 0 .1 0zM89 12a3 4 0 1 0 .1 0zM95 18a3 4 0 1 0 .1 0z"/></g>
+        <g><path d="M150 38c-6 0-9 5-9 8s3 4 9 4 9-1 9-4-3-8-9-8zM141 34a3 4 0 1 0 .1 0zM147 28a3 4 0 1 0 .1 0zM154 28a3 4 0 1 0 .1 0zM160 34a3 4 0 1 0 .1 0z"/></g>
+        <g><path d="M215 22c-6 0-9 5-9 8s3 4 9 4 9-1 9-4-3-8-9-8zM206 18a3 4 0 1 0 .1 0zM212 12a3 4 0 1 0 .1 0zM219 12a3 4 0 1 0 .1 0zM225 18a3 4 0 1 0 .1 0z"/></g>
+      </svg>
     </section>
 
-    <section class="seccion" aria-labelledby="titulo-ejemplo">
-      <h2 id="titulo-ejemplo">Así es una historia</h2>
-      <article class="pagina" id="ejemplo"></article>
-      <p class="nota-clara">Ejemplo de una página. Cada historia tiene 6 y se escribe nueva para tu mascota.</p>
+    <section id="como" class="franja-platano">
+      <div class="ancho bloque">
+        <h2 class="d titulo-seccion">Así de fácil</h2>
+        <ol class="pasos">
+          <li class="tarjeta">
+            <div class="paso-cabeza">
+              <span class="d numero fondo-mandarina">1</span>
+              <svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="6" width="30" height="36" rx="5"/><path d="M16 16h16M16 24h16M16 32h9"/></svg>
+            </div>
+            <h3 class="d">Cuéntenos cómo es</h3>
+            <p>Nombre, especie, carácter y su manía más rara. Se rellena en un minuto, sin subir fotos.</p>
+          </li>
+          <li class="tarjeta">
+            <div class="paso-cabeza">
+              <span class="d numero fondo-menta">2</span>
+              <svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 38l4-12L34 6l8 8-20 20z"/><path d="M30 10l8 8"/><path d="M6 42h12"/></svg>
+            </div>
+            <h3 class="d">La escribimos y la pintamos</h3>
+            <p>6 páginas de comedia, cada una dibujada al estilo de los dibujos animados con su mascota dentro.</p>
+          </li>
+          <li class="tarjeta">
+            <div class="paso-cabeza">
+              <span class="d numero fondo-lila">3</span>
+              <svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 28v-4a16 16 0 0 1 32 0v4"/><rect x="6" y="28" width="9" height="13" rx="3"/><rect x="33" y="28" width="9" height="13" rx="3"/></svg>
+            </div>
+            <h3 class="d">Léanla y escúchenla</h3>
+            <p>Para leer en voz alta o para escucharla con una de nuestras 4 voces. Lista en un par de minutos.</p>
+          </li>
+        </ol>
+      </div>
     </section>
 
-    <section class="seccion">
-      <h2>Tres pasos</h2>
-      <ol class="pasos">
-        <li><strong>Cuéntanos cómo es.</strong> Su nombre, su carácter y esa manía que solo tú conoces.</li>
-        <li><strong>Escribimos su historia.</strong> Una aventura nueva, con el tono que elijas.</li>
-        <li><strong>Escúchala y compártela.</strong> Con ilustraciones y voz narrada, para que la vea todo el mundo.</li>
+    <section id="precios" class="ancho bloque centrado">
+      <div class="cabeza-seccion">
+        <h2 class="d titulo-seccion">Precios claros</h2>
+        <p class="entradilla">Pruebe 3 días gratis. Si cancela antes de que acaben, no se le cobra nada.</p>
+      </div>
+      <div class="planes">
+        <article class="plan">
+          <div class="plan-cabeza">
+            <h3 class="d">Mensual</h3>
+            <span class="insignia fondo-menta">3 días gratis</span>
+          </div>
+          <p class="plan-precio"><span class="d">4,99 €</span><span>/mes</span></p>
+          <ul class="ventajas">
+            <li><svg width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>8 historias nuevas al mes</li>
+            <li><svg width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>Ilustradas y narradas</li>
+            <li><svg width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>Puede releerlas cuando quiera</li>
+          </ul>
+          <button type="button" class="btn btn-p ancho-total" data-ir="crear">Probar 3 días gratis</button>
+          <p class="plan-nota">Después, 4,99 € al mes. IVA incluido.</p>
+        </article>
+        <article class="plan plan-oscuro">
+          <div class="plan-cabeza">
+            <h3 class="d">Premium</h3>
+            <span class="insignia fondo-platano">Para lectores voraces</span>
+          </div>
+          <p class="plan-precio"><span class="d">19,99 €</span><span>/mes</span></p>
+          <ul class="ventajas">
+            <li><svg width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>1 historia nueva cada día</li>
+            <li><svg width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>Ilustradas y narradas</li>
+            <li><svg width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>Un cuento para cada noche</li>
+          </ul>
+          <button type="button" class="btn btn-platano ancho-total" data-ir="crear">Elegir Premium</button>
+          <p class="plan-nota">Se cobra desde el primer día. IVA incluido.</p>
+        </article>
+      </div>
+      <ul class="garantias">
+        <li><svg width="20" height="20" aria-hidden="true"><use href="#i-candado"/></svg>Pago seguro con Stripe</li>
+        <li><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M8.5 8.5l7 7"/></svg>Cancele desde su cuenta</li>
+        <li><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/></svg>No pedimos fotos de su mascota</li>
+      </ul>
+    </section>
+
+    <section id="preguntas" class="franja-blanca">
+      <div class="estrecho bloque">
+        <h2 class="d titulo-seccion">Preguntas frecuentes</h2>
+        <div class="preguntas">
+          <details open><summary>¿Cuándo se me cobra?<svg class="chev" width="24" height="24" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+            <p>Los 3 primeros días son gratis. Si no cancela, el cuarto día se cobran 4,99 € y después cada mes. Premium se cobra desde el primer día.</p></details>
+          <details><summary>¿Cómo cancelo?<svg class="chev" width="24" height="24" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+            <p>En «Mi suscripción», con un par de clics. Sus historias siguen disponibles hasta el final del periodo pagado.</p></details>
+          <details><summary>¿Para qué edades es?<svg class="chev" width="24" height="24" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+            <p>Pensada para niños de 4 a 10 años. Hasta el tono «miedo suave» es apto: da más risa que miedo.</p></details>
+          <details><summary>¿Quién escribe las historias?<svg class="chev" width="24" height="24" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+            <p>Las escribe y las dibuja una inteligencia artificial, y la voz también es sintética. Son ficción y humor: su mascota no ha robado nada de verdad. Probablemente.</p></details>
+          <details><summary>¿Qué datos guardan de mi familia?<svg class="chev" width="24" height="24" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+            <p>Su email y los datos de la mascota que usted escribe. No pedimos fotos ni datos de los niños. Puede borrar su cuenta y todo su contenido cuando quiera.</p></details>
+          <details><summary>¿Cuánto tarda una historia?<svg class="chev" width="24" height="24" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+            <p>Entre 1 y 2 minutos. Mientras tanto, los niños pueden jugar a un quiz de animales.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="franja-mandarina">
+      <div class="ancho llamada-final">
+        <h2 class="d">Esta noche, el cuento lo protagoniza su mascota</h2>
+        <button type="button" class="btn btn-xl" data-ir="crear">Crear su primera historia</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Panel: sus mascotas y sus historias ===== -->
+  <main id="panel" class="vista estrecho-app" hidden>
+    <div id="panel-cargando" class="esqueleto" aria-busy="true">
+      <p class="solo-lectores" role="status">Cargando sus historias…</p>
+      <div class="sk" style="width:60%;height:32px"></div>
+      <div class="sk-fila"><div class="sk" style="width:140px;height:52px;border-radius:99px"></div><div class="sk" style="width:120px;height:52px;border-radius:99px"></div></div>
+      <div class="sk" style="height:64px;border-radius:18px"></div>
+      <div class="sk" style="height:96px;border-radius:22px"></div>
+    </div>
+
+    <div id="panel-contenido" hidden>
+      <section aria-labelledby="t-mascotas" class="grupo">
+        <h1 id="t-mascotas" class="d titulo-panel">Sus mascotas</h1>
+        <p id="sin-mascotas" class="texto-suave" hidden>Aún no ha añadido ninguna.</p>
+        <div role="group" aria-label="Elegir mascota" id="chips-mascotas" class="chips"></div>
+        <button type="button" id="nueva-historia" class="btn btn-p btn-xl ancho-total">
+          <svg width="24" height="24" aria-hidden="true"><use href="#i-estrella"/></svg>
+          <span id="nueva-historia-texto">Nueva historia</span>
+        </button>
+      </section>
+
+      <section id="saldo" aria-labelledby="t-saldo" class="caja" hidden>
+        <div class="fila-entre">
+          <h2 id="t-saldo" class="saldo-titulo"></h2>
+          <span id="saldo-de" class="texto-suave"></span>
+        </div>
+        <div id="saldo-barra" class="saldo-barra" role="img"></div>
+        <p class="texto-suave pequeno"><span id="saldo-plan"></span> <button type="button" class="enlace" data-abrir="cuenta">Mi suscripción</button></p>
+      </section>
+
+      <section aria-labelledby="t-historias" class="grupo">
+        <div class="fila-entre">
+          <h2 id="t-historias" class="d titulo-panel-2">Sus historias</h2>
+          <span id="num-historias" class="texto-suave"></span>
+        </div>
+        <ul id="lista-historias" class="historias"></ul>
+        <section id="sin-historias" class="vacio" hidden>
+          <svg viewBox="0 0 160 110" width="180" height="124" role="img" aria-label="Una cesta de mascota vacía">
+            <g stroke="#2B1840" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+              <ellipse cx="80" cy="92" rx="66" ry="12" fill="#D5CCE3" stroke="none"/>
+              <path d="M18 62c0 22 28 32 62 32s62-10 62-32" fill="#FF8A2B"/>
+              <ellipse cx="80" cy="62" rx="62" ry="18" fill="#FFD23F"/>
+              <ellipse cx="80" cy="62" rx="44" ry="10" fill="#FF8FB8"/>
+            </g>
+            <g class="zzz" fill="#5B2EE0" font-family="Baloo 2, sans-serif" font-weight="800"><text x="112" y="30" font-size="22">z</text><text x="128" y="16" font-size="16">z</text></g>
+          </svg>
+          <h2 class="d">Todavía no hay historias</h2>
+          <p>Cuéntenos cómo es su mascota y en 2 minutos tendrá su primer cuento.</p>
+          <button type="button" class="btn btn-p ancho-total" data-ir="crear">Crear la primera historia</button>
+        </section>
+      </section>
+    </div>
+  </main>
+
+  <!-- ===== Crear historia ===== -->
+  <main id="crear" class="vista" hidden>
+    <div class="barra-app">
+      <button type="button" class="fantasma" data-volver>
+        <svg width="20" height="20" aria-hidden="true"><use href="#i-atras"/></svg>
+        Volver
+      </button>
+      <span class="d barra-titulo">Nueva historia</span>
+    </div>
+
+    <form id="formulario" class="formulario estrecho-app" autocomplete="off" novalidate aria-label="Datos de la mascota">
+      <div class="resumen meneo" aria-live="polite">
+        <p class="resumen-etiqueta">El protagonista de hoy</p>
+        <p class="d" id="resumen">Su mascota</p>
+      </div>
+
+      <div class="pregunta">
+        <label for="nombre" class="q d"><span class="n">1</span>¿Cómo se llama?</label>
+        <input id="nombre" name="nombre" class="campo" type="text" maxlength="30" placeholder="Por ejemplo, Toby" aria-describedby="nombre-error">
+        <p id="nombre-error" class="error-campo" hidden><svg width="20" height="20" aria-hidden="true"><use href="#i-alerta"/></svg>Escriba el nombre de su mascota</p>
+      </div>
+
+      <fieldset class="pregunta">
+        <legend class="q d"><span class="n">2</span>¿Qué es?</legend>
+        <div id="especies" class="rejilla-4"></div>
+        <button type="button" id="mas-especies" class="fantasma" aria-expanded="false">
+          <svg width="20" height="20" aria-hidden="true"><use href="#i-mas"/></svg>
+          <span>Más animales (8)</span>
+        </button>
+      </fieldset>
+
+      <fieldset class="pregunta">
+        <legend class="q d"><span class="n">3</span>¿Cómo es?</legend>
+        <div id="personalidades" class="pastillas"></div>
+      </fieldset>
+
+      <div class="pregunta">
+        <label for="mania" class="q d"><span class="n">4</span>Su manía</label>
+        <textarea id="mania" name="mania" class="campo" rows="2" maxlength="80" placeholder="¿Qué hace que nadie más hace?" aria-describedby="mania-error"></textarea>
+        <p id="mania-error" class="error-campo" hidden><svg width="20" height="20" aria-hidden="true"><use href="#i-alerta"/></svg>Cuéntenos su manía, aunque sea pequeña</p>
+        <div class="ideas">
+          <span>Ideas:</span>
+          <button type="button" class="idea">Roba calcetines</button>
+          <button type="button" class="idea">Odia el aspirador</button>
+          <button type="button" class="idea">Duerme encima del teclado</button>
+        </div>
+      </div>
+
+      <fieldset class="pregunta">
+        <legend class="q d"><span class="n">5</span>¿Qué tipo de historia?</legend>
+        <div id="tonos" class="rejilla-3"></div>
+      </fieldset>
+
+      <fieldset class="pregunta">
+        <legend class="q d"><span class="n">6</span>¿De qué color es?</legend>
+        <div id="colores" class="rejilla-5"></div>
+      </fieldset>
+
+      <fieldset class="pregunta">
+        <legend class="q d"><span class="n">7</span>¿Lleva collar o lazo?</legend>
+        <div id="collares" class="rejilla-5"></div>
+      </fieldset>
+
+      <div class="barra-enviar">
+        <p id="error" class="aviso-error" role="alert" hidden></p>
+        <button type="submit" class="btn btn-p btn-xl ancho-total">
+          <svg width="24" height="24" aria-hidden="true"><use href="#i-estrella"/></svg>
+          Crear la historia
+        </button>
+        <p id="usara" class="texto-suave pequeno centrado"></p>
+      </div>
+    </form>
+  </main>
+
+  <!-- ===== Espera ===== -->
+  <main id="cargando" class="vista estrecho-app" hidden>
+    <section id="progreso-caja" class="caja progreso" aria-labelledby="progreso">
+      <div class="progreso-cabeza">
+        <span class="circulo fondo-platano" aria-hidden="true"><svg class="pincel" width="32" height="32"><use href="#i-pincel"/></svg></span>
+        <div>
+          <h1 id="progreso" class="d" aria-live="polite">Escribiendo la historia…</h1>
+          <p class="texto-suave pequeno">Tarda 1 o 2 minutos. No cierre esta página.</p>
+        </div>
+      </div>
+      <div id="barra-progreso" class="barra-progreso" role="progressbar" aria-label="Progreso de la historia" aria-valuemin="0" aria-valuemax="100" aria-valuenow="10">
+        <div class="relleno"></div>
+      </div>
+      <ol class="etapas">
+        <li id="etapa-escribir">Escribir</li>
+        <li id="etapa-pintar">Pintar</li>
       </ol>
     </section>
 
-    <section class="seccion" id="crear">
-      <h2>Crea su historia</h2>
-      <form id="formulario" autocomplete="off">
-        <div id="mis-mascotas" hidden>
-          <p class="etiqueta">Sus mascotas</p>
-          <div id="lista-mascotas" class="chips"></div>
-        </div>
-        <label>¿Cómo se llama?<input name="nombre" maxlength="30" required placeholder="Toby"></label>
-        <label>¿Qué es?
-          <select name="especie">
-            <option value="perro">Un perro</option><option value="gato">Un gato</option><option value="conejo">Un conejo</option>
-            <option value="hamster">Un hámster</option><option value="cobaya">Una cobaya</option><option value="chinchilla">Una chinchilla</option>
-            <option value="huron">Un hurón</option><option value="erizo">Un erizo</option><option value="cerdito">Un cerdito</option>
-            <option value="caballo">Un caballo</option><option value="periquito">Un periquito</option><option value="loro">Un loro</option>
-            <option value="tortuga">Una tortuga</option><option value="pez">Un pez</option>
-            <option value="serpiente">Una serpiente</option><option value="tarantula">Una tarántula</option>
-          </select>
-        </label>
-        <label>¿Cómo es?
-          <select name="personalidad">
-            <option value="muy dramático">Dramático</option><option value="un genio incomprendido">Genio incomprendido</option>
-            <option value="vago profesional">Vago profesional</option><option value="valiente sin motivo">Valiente sin motivo</option>
-            <option value="un cotilla">Cotilla</option><option value="un tragón sin remedio">Tragón sin remedio</option>
-            <option value="un miedica de campeonato">Miedica</option><option value="juguetón sin descanso">Juguetón</option>
-            <option value="un pegajoso incurable">Pegajoso</option><option value="presumido como una estrella">Presumido</option>
-            <option value="un gruñón con buen corazón">Gruñón</option>
-          </select>
-        </label>
-        <label>¿Cuál es su manía?<input name="mania" maxlength="80" required placeholder="robar calcetines y esconderlos en el sofá"></label>
-        <label>¿Qué tono quieres?
-          <select name="tono">
-            <option value="comedia">Comedia</option><option value="película de espías">Espías</option>
-            <option value="detective">Detective</option><option value="epopeya">Epopeya</option><option value="culebrón">Culebrón</option>
-            <option value="documental animal">Documental</option><option value="ciencia ficción">Ciencia ficción</option>
-            <option value="aventura pirata">Piratas</option><option value="miedo para niños">Miedo suave</option>
-          </select>
-        </label>
-        <fieldset>
-          <legend>Así es en la historia</legend>
-          <div class="fila">
-            <label>Color
-              <select name="color"><option value="#c98a4f">Canela</option><option value="#2e2a2a">Negro</option><option value="#efe6da">Blanco</option><option value="#8d8d99">Gris</option><option value="#e08a3c">Naranja</option><option value="#7a5230">Marrón</option><option value="#5fae4e">Verde</option><option value="#4a90d9">Azul</option><option value="#f2c94c">Amarillo</option></select>
-            </label>
-            <label>Collar o lazo
-              <select name="collar"><option value="#d9503f">Rojo</option><option value="#3f7fd9">Azul</option><option value="#3fa37a">Verde</option><option value="#e8a42c">Amarillo</option><option value="ninguno">Sin collar ni lazo</option></select>
-            </label>
-          </div>
-        </fieldset>
-        <button type="submit" class="principal">Crear su historia</button>
-        <p id="error" class="error" role="alert" hidden></p>
-      </form>
+    <section id="lista" class="lista estallido" aria-live="polite" hidden>
+      <svg aria-hidden="true" viewBox="0 0 340 60" width="100%" height="50" class="confeti"><g stroke="#2B1840" stroke-width="2"><rect x="20" y="10" width="10" height="10" fill="#FFD23F" transform="rotate(20 25 15)"/><circle cx="80" cy="30" r="6" fill="#FF8FB8"/><rect x="140" y="6" width="9" height="9" fill="#fff" transform="rotate(-15 145 10)"/><circle cx="210" cy="16" r="5" fill="#FF8A2B"/><rect x="270" y="28" width="10" height="10" fill="#B69CFF" transform="rotate(30 275 33)"/><circle cx="318" cy="12" r="6" fill="#FFD23F"/></g></svg>
+      <h1 id="lista-titulo" class="d">¡La historia está lista!</h1>
+      <button type="button" id="abrir-lista" class="btn btn-platano btn-xxl ancho-total">
+        <svg width="26" height="26" aria-hidden="true"><use href="#i-libro"/></svg>
+        Abrir
+      </button>
     </section>
 
-    <section class="seccion" id="precios">
-      <h2>Precios</h2>
-      <div class="planes">
-        <article class="plan">
-          <h3>Aventuras</h3>
-          <p class="precio"><strong>Gratis</strong> 3 días</p>
-          <p>3 historias de prueba. Después, 4,99 € al mes con 8 historias nuevas.</p>
-        </article>
-        <article class="plan destacado">
-          <h3>Premium</h3>
-          <p class="precio"><strong>19,99 €</strong> al mes</p>
-          <p>1 historia nueva cada día.</p>
-        </article>
+    <section id="fallo" class="caja fallo" role="alert" hidden>
+      <span class="circulo fondo-coral" aria-hidden="true"><svg width="30" height="30"><use href="#i-pincel"/></svg></span>
+      <h2 class="d">Uy, se nos ha atascado el pincel</h2>
+      <p id="fallo-texto" class="texto-suave"></p>
+      <button type="button" id="reintentar" class="btn btn-p ancho-total">Intentarlo otra vez</button>
+      <button type="button" class="btn btn-discreto ancho-total" data-volver>Volver</button>
+    </section>
+
+    <section class="caja quiz" aria-labelledby="quiz-cabecera">
+      <div class="fila-entre">
+        <h2 id="quiz-cabecera" class="quiz-cabecera">QUIZ DE MASCOTAS</h2>
+        <span class="insignia fondo-platano"><svg width="18" height="18" aria-hidden="true"><use href="#i-estrella"/></svg><span id="quiz-puntos">0 aciertos</span></span>
       </div>
-      <p class="nota-clara">IVA incluido. Volver a escuchar sus historias no cuenta como historia nueva.</p>
-    </section>
-
-    <section class="seccion" id="dudas">
-      <h2>Preguntas frecuentes</h2>
-      <details><summary>¿Quién escribe las historias?</summary><p>Las escribe una inteligencia artificial y la voz también es sintética. Son ficción y humor: tu mascota no ha robado de verdad nada. Probablemente.</p></details>
-      <details><summary>¿Qué datos pedís?</summary><p>Tu email y lo que nos cuentas de tu mascota. No pedimos fotos. Puedes borrar tu cuenta y sus historias cuando quieras.</p></details>
-      <details><summary>¿Puedo compartirlas?</summary><p>Claro: para eso están. Ábrela en tu móvil y enséñasela a quien quieras, con su narración incluida.</p></details>
-      <details><summary>¿Cómo cancelo?</summary><p>Desde «Mi suscripción», en dos clics. Si cancelas durante los 3 días de prueba, no se te cobra nada.</p></details>
+      <p id="quiz-pregunta" class="d quiz-pregunta"></p>
+      <div id="quiz-opciones" class="quiz-opciones"></div>
+      <div id="quiz-respuesta" aria-live="polite" hidden>
+        <div class="quiz-dato">
+          <p id="quiz-veredicto" class="d"></p>
+          <p id="quiz-dato"></p>
+        </div>
+        <button type="button" id="quiz-siguiente" class="btn btn-lila ancho-total">
+          Siguiente pregunta
+          <svg width="22" height="22" aria-hidden="true"><use href="#i-flecha"/></svg>
+        </button>
+      </div>
     </section>
   </main>
 
-  <div id="cargando" class="pantalla" hidden>
-    <div class="luna" aria-hidden="true"></div>
-    <p id="progreso" aria-live="polite">Siguiendo su rastro…</p>
-    <button type="button" id="abrir-lista" class="principal" hidden>¡Su historia está lista! Abrir</button>
-    <section class="quiz" aria-labelledby="quiz-pregunta">
-      <p class="quiz-cabecera">Quiz de mascotas mientras esperáis · <span id="quiz-puntos"></span></p>
-      <h2 id="quiz-pregunta"></h2>
-      <div id="quiz-opciones" class="quiz-opciones"></div>
-      <p id="quiz-dato" aria-live="polite" hidden></p>
-      <button type="button" id="quiz-siguiente" class="suave" hidden>Siguiente pregunta</button>
+  <!-- ===== Lectura ===== -->
+  <main id="libro" class="vista" hidden>
+    <div class="libro-dentro">
+      <div class="libro-arriba">
+        <button type="button" class="fantasma" data-volver>
+          <svg width="20" height="20" aria-hidden="true"><use href="#i-atras"/></svg>
+          Mis historias
+        </button>
+      </div>
+      <p id="aviso-muestra" class="aviso" hidden>Historia de muestra para pruebas.</p>
+      <h1 id="titulo-libro" class="d"></h1>
+
+      <div class="libro-cuerpo">
+        <figure id="pagina" class="pagina-libro"></figure>
+        <div class="libro-lado">
+          <div class="texto-libro"><p id="texto-pagina" aria-live="polite"></p></div>
+          <nav aria-label="Páginas" class="paginacion">
+            <button type="button" id="anterior" class="btn-nav" aria-label="Página anterior">
+              <svg width="26" height="26" aria-hidden="true"><use href="#i-izq"/></svg><span class="solo-ancho">Anterior</span>
+            </button>
+            <div class="contador">
+              <span id="contador" class="d"></span>
+              <span id="puntos" class="puntos" aria-hidden="true"></span>
+            </div>
+            <button type="button" id="siguiente" class="btn-nav btn-nav-siguiente" aria-label="Página siguiente">
+              <span class="solo-ancho">Siguiente</span><svg width="26" height="26" aria-hidden="true"><use href="#i-der"/></svg>
+            </button>
+            <button type="button" id="fin" class="btn-nav btn-nav-fin" data-volver hidden>Fin</button>
+          </nav>
+        </div>
+      </div>
+    </div>
+
+    <section id="narracion" class="narracion" aria-label="Narración">
+      <div id="aviso-voz" class="aviso-voz" role="status" hidden>
+        <svg width="26" height="26" aria-hidden="true"><use href="#i-sin-voz"/></svg>
+        <p>No se ha podido cargar la voz.</p>
+        <button type="button" id="reintentar-voz" class="btn btn-sm">Reintentar</button>
+      </div>
+      <div class="narracion-controles">
+        <button type="button" id="leer" class="play" aria-label="Escuchar">
+          <svg class="icono-play" width="30" height="30" aria-hidden="true"><use href="#i-play"/></svg>
+          <svg class="icono-pausa" width="28" height="28" aria-hidden="true"><use href="#i-pausa"/></svg>
+        </button>
+        <div class="narracion-info">
+          <span class="narracion-estado"><span id="estado-audio">Escuchar</span>
+            <span class="onda" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+          </span>
+          <label for="voz" class="solo-lectores">Voz del narrador</label>
+          <span class="selector">
+            <select id="voz" class="sel">
+              <option value="espana-hombre">Voz: Marco</option><option value="espana-mujer">Voz: Laura</option>
+              <option value="latam-hombre">Voz: Mateo</option><option value="latam-mujer">Voz: Samanta</option>
+            </select>
+            <svg width="18" height="18" aria-hidden="true"><use href="#i-chev"/></svg>
+          </span>
+        </div>
+        <button type="button" id="reiniciar" class="icono icono-grande" aria-label="Repetir esta página">
+          <svg width="26" height="26" aria-hidden="true"><use href="#i-repetir"/></svg>
+        </button>
+      </div>
     </section>
+  </main>
+
   </div>
 
-  <main id="libro" hidden>
-    <div class="barra">
-      <button type="button" id="volver" class="suave">← Volver</button>
-      <button type="button" id="leer" class="suave">▶ Escuchar</button>
-      <select id="voz" class="suave" aria-label="Voz de la narración">
-        <option value="espana-hombre">Voz: España, él</option><option value="espana-mujer">Voz: España, ella</option>
-        <option value="latam-hombre">Voz: latino, él</option><option value="latam-mujer">Voz: latina, ella</option>
-      </select>
-      <button type="button" id="reiniciar" class="suave" aria-label="Narrar esta página desde el principio" title="Narrar esta página desde el principio">↺</button>
-    </div>
-    <p id="aviso-muestra" class="aviso" hidden>Historia de muestra para pruebas.</p>
-    <h2 id="titulo-libro"></h2>
-    <article id="pagina" class="pagina"></article>
-    <div class="paso">
-      <button type="button" id="anterior" class="suave">Anterior</button>
-      <span id="contador"></span>
-      <button type="button" id="siguiente" class="suave">Siguiente</button>
-    </div>
-  </main>
-
   <footer class="pie">
-    <p>Mascotadas · Historias de ficción creadas con inteligencia artificial</p>
-    <nav>
-      <a href="/aviso-legal">Aviso legal</a>
-      <a href="/condiciones">Condiciones</a>
-      <a href="/privacidad">Privacidad</a>
-      <button type="button" id="borrar" class="enlace" hidden>Borrar mi cuenta</button>
-    </nav>
+    <div class="ancho pie-dentro">
+      <div class="marca-pie">
+        <svg class="logo" width="36" height="36" aria-hidden="true" style="color:#fff"><use href="#i-logo"/></svg>
+        <span class="d">Mascotadas</span>
+      </div>
+      <nav aria-label="Legal">
+        <a href="/aviso-legal">Aviso legal</a>
+        <a href="/privacidad">Privacidad</a>
+        <a href="/condiciones">Términos y condiciones</a>
+        <a href="/cookies">Cookies</a>
+      </nav>
+      <p class="pie-nota">© 2026 Mascotadas · Historias de ficción creadas con inteligencia artificial</p>
+    </div>
   </footer>
 
-  <dialog id="acceso">
-    <h2>Entra con tu email</h2>
-    <p>Te enviamos un enlace para entrar, sin contraseña.</p>
-    <form id="formulario-acceso" method="dialog">
-      <label>Tu email<input type="email" name="email" required autocomplete="email"></label>
-      <button type="submit" class="principal">Enviarme el enlace</button>
-    </form>
-    <p id="acceso-aviso" role="status" hidden></p>
-    <button type="button" id="cerrar-acceso" class="suave">Cerrar</button>
+  <!-- ===== Ventanas ===== -->
+  <dialog id="acceso" class="ventana" aria-labelledby="acceso-titulo">
+    <button type="button" class="cerrar" data-cerrar aria-label="Cerrar"><svg width="24" height="24" aria-hidden="true"><use href="#i-cruz"/></svg></button>
+    <div id="acceso-formulario">
+      <h2 id="acceso-titulo" class="d">Entrar</h2>
+      <p class="texto-suave">Le enviamos un enlace a su email. Sin contraseñas.</p>
+      <form id="formulario-acceso">
+        <label class="etiqueta-campo" for="email">Su email</label>
+        <input id="email" class="campo" type="email" name="email" required autocomplete="email" placeholder="nombre@correo.com">
+        <p id="acceso-aviso" class="error-campo" role="alert" hidden></p>
+        <button type="submit" class="btn btn-p ancho-total">Enviarme el enlace</button>
+      </form>
+      <p class="texto-suave pequeno">Al continuar acepta los <a href="/condiciones" target="_blank">Términos y condiciones</a> y la <a href="/privacidad" target="_blank">Política de privacidad</a>.</p>
+    </div>
+    <div id="acceso-enviado" class="centrado" hidden>
+      <span class="circulo-grande fondo-menta" aria-hidden="true">
+        <svg viewBox="0 0 48 48" width="50" height="50" fill="#fff" stroke="#2B1840" stroke-width="3" stroke-linejoin="round"><rect x="6" y="12" width="36" height="26" rx="4"/><path d="M7 14l17 13 17-13" fill="none" stroke-linecap="round"/></svg>
+      </span>
+      <h2 class="d">Mire su correo</h2>
+      <p class="texto-suave">Hemos enviado un enlace a <strong id="acceso-email"></strong>. Púlselo desde este dispositivo para entrar. Si no lo ve, mire en spam.</p>
+      <button type="button" id="otro-email" class="btn btn-discreto ancho-total">Usar otro email</button>
+    </div>
   </dialog>
 
-  <dialog id="muro">
-    <h2 id="muro-titulo">Elige su plan</h2>
-    <p id="muro-texto" class="nota-muro"></p>
-    <section class="plan" id="plan-basico">
-      <h3>Aventuras</h3>
-      <p class="precio"><strong>Gratis</strong> 3 días</p>
-      <p>3 historias de prueba. Te pedimos la tarjeta, pero hoy no se cobra nada. Si no cancelas, sigue a 4,99 € al mes con 8 historias nuevas.</p>
-      <button type="button" class="principal" data-plan="prueba">Probar 3 días gratis</button>
-    </section>
-    <section class="plan destacado" id="plan-premium">
-      <h3>Premium</h3>
-      <p class="precio"><strong>19,99 €</strong> al mes</p>
-      <p>1 historia nueva cada día.</p>
-      <button type="button" class="principal" data-plan="premium">Elegir Premium</button>
-    </section>
-    <label class="aceptar" id="bloque-aceptar">
+  <dialog id="muro" class="ventana ventana-ancha" aria-labelledby="muro-titulo">
+    <button type="button" class="cerrar" data-cerrar aria-label="Cerrar"><svg width="24" height="24" aria-hidden="true"><use href="#i-cruz"/></svg></button>
+    <h2 id="muro-titulo" class="d">Elija su plan</h2>
+    <fieldset class="opciones-plan">
+      <legend class="solo-lectores">Plan</legend>
+      <label class="opcion-plan" id="opcion-mensual">
+        <input type="radio" name="plan" value="prueba" checked>
+        <span class="opcion-plan-texto">
+          <span class="fila-entre"><strong>Mensual</strong><strong>4,99 €<small>/mes</small></strong></span>
+          <span class="texto-suave">8 historias al mes · <strong>3 días gratis</strong></span>
+        </span>
+      </label>
+      <label class="opcion-plan" id="opcion-premium">
+        <input type="radio" name="plan" value="premium">
+        <span class="opcion-plan-texto">
+          <span class="fila-entre"><strong>Premium</strong><strong>19,99 €<small>/mes</small></strong></span>
+          <span class="texto-suave">1 historia al día · se cobra hoy</span>
+        </span>
+      </label>
+    </fieldset>
+    <dl class="resumen-pago">
+      <div class="fila-dato"><dt>Hoy paga</dt><dd id="hoy-paga">0,00 €</dd></div>
+      <div class="fila-dato"><dt id="cobro-cuando">Primer cobro</dt><dd id="cobro-cuanto">4,99 €</dd></div>
+    </dl>
+    <label class="casilla">
       <input type="checkbox" id="empezar-ya">
-      <span>Quiero empezar ya y sé que, al crear mi primera historia, pierdo el derecho a desistir en 14 días.</span>
+      <span>Quiero empezar ahora. Entiendo que pierdo el derecho de desistimiento de 14 días en cuanto se cree mi primera historia. <a href="/condiciones" target="_blank">Términos y condiciones</a></span>
     </label>
-    <p id="muro-error" class="error" role="alert" hidden></p>
-    <button type="button" id="cerrar-muro" class="suave">Ahora no</button>
+    <p id="muro-error" class="error-campo" role="alert" hidden></p>
+    <button type="button" id="pagar" class="btn btn-p ancho-total">Probar 3 días gratis</button>
+    <p class="nota-segura"><svg width="18" height="18" aria-hidden="true"><use href="#i-candado"/></svg>Pago seguro con Stripe · Cancele desde su cuenta</p>
+  </dialog>
+
+  <dialog id="agotadas" class="ventana" aria-labelledby="agotadas-titulo">
+    <button type="button" class="cerrar" data-cerrar aria-label="Cerrar"><svg width="24" height="24" aria-hidden="true"><use href="#i-cruz"/></svg></button>
+    <div class="centrado">
+      <span class="circulo-grande fondo-lila" aria-hidden="true">
+        <svg viewBox="0 0 48 48" width="50" height="50" fill="#FFD23F" stroke="#2B1840" stroke-width="3" stroke-linejoin="round"><path d="M30 8a16 16 0 1 0 10 26A13 13 0 0 1 30 8z"/><path d="M36 10h6l-6 6h6" fill="none" stroke-linecap="round"/></svg>
+      </span>
+      <h2 id="agotadas-titulo" class="d"></h2>
+      <p id="agotadas-texto" class="texto-suave"></p>
+      <button type="button" id="a-premium" class="btn btn-p ancho-total">Pasar a Premium · 1 al día</button>
+      <button type="button" class="btn btn-discreto ancho-total" data-cerrar>Releer mis historias</button>
+    </div>
+  </dialog>
+
+  <dialog id="cuenta" class="ventana" aria-labelledby="cuenta-titulo">
+    <button type="button" class="cerrar" data-cerrar aria-label="Cerrar"><svg width="24" height="24" aria-hidden="true"><use href="#i-cruz"/></svg></button>
+    <h2 id="cuenta-titulo" class="d">Mi suscripción</h2>
+    <dl>
+      <div class="fila-dato"><dt>Plan</dt><dd id="cuenta-plan"></dd></div>
+      <div class="fila-dato"><dt>Historias</dt><dd id="cuenta-historias"></dd></div>
+      <div class="fila-dato"><dt>Cuenta</dt><dd id="cuenta-email"></dd></div>
+    </dl>
+    <p id="cuenta-error" class="error-campo" role="alert" hidden></p>
+    <button type="button" id="cuenta-premium" class="btn btn-p ancho-total">Pasar a Premium</button>
+    <button type="button" id="cuenta-elegir" class="btn btn-p ancho-total">Elegir un plan</button>
+    <button type="button" id="gestionar" class="btn btn-discreto ancho-total">Forma de pago, facturas o cancelar</button>
+    <button type="button" id="salir" class="btn btn-discreto ancho-total">Salir</button>
+    <div class="zona-peligro">
+      <span class="texto-suave pequeno">Borra mascotas, historias y email</span>
+      <button type="button" id="borrar" class="enlace enlace-peligro">Borrar cuenta</button>
+    </div>
+  </dialog>
+
+  <dialog id="confirmar-borrado" class="ventana" role="alertdialog" aria-labelledby="borrar-titulo" aria-describedby="borrar-texto">
+    <form id="formulario-borrar">
+      <h2 id="borrar-titulo" class="d">¿Borrar su cuenta?</h2>
+      <p id="borrar-texto" class="texto-suave"></p>
+      <label class="etiqueta-campo" for="confirmacion">Escriba BORRAR para confirmar</label>
+      <input id="confirmacion" class="campo" type="text" autocomplete="off">
+      <p id="borrar-error" class="error-campo" role="alert" hidden></p>
+      <button type="submit" class="btn btn-peligro ancho-total">Sí, borrar todo</button>
+      <button type="button" class="btn btn-discreto ancho-total" data-cerrar>No, volver</button>
+    </form>
   </dialog>
 
   <script type="module" src="app.js"></script>

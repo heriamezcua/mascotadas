@@ -53,8 +53,8 @@ export async function crearPago(usuario, plan) {
     custom_text: {
       submit: {
         message: conPrueba
-          ? "Hoy no pagas nada. Si no cancelas en los 3 días de prueba, empezará tu plan de 4,99 € al mes. Al continuar aceptas las condiciones de mascotadas.com/condiciones."
-          : "Al pagar aceptas las condiciones de mascotadas.com/condiciones. Puedes cancelar cuando quieras.",
+          ? "Hoy no pagas nada. Si no cancelas en los 3 días de prueba, empezará tu plan de 4,99 € al mes. Al continuar aceptas los términos y condiciones de mascotadas.com/condiciones."
+          : "Al pagar aceptas los términos y condiciones de mascotadas.com/condiciones. Puedes cancelar cuando quieras.",
       },
     },
     locale: "es",

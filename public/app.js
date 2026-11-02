@@ -3,16 +3,59 @@ import { empezarQuiz } from "./quiz.js";
 
 const $ = (id) => document.getElementById(id);
 const BORRADOR = "mascotadas.borrador";
+const VOZ = "mascotadas.voz";
+const VISTAS = ["portada", "panel", "crear", "cargando", "libro"];
 
-const EJEMPLO = {
-  lugar: "ciudad",
-  momento: "atardecer",
-  objetos: ["tesoro"],
-  texto: "A las 8:03, en cuanto se cerró la puerta, Toby abrió un ojo. Oficialmente, dormía. En realidad, llevaba meses planeando el mayor robo de calcetines de la historia del barrio. Y hoy, por fin, conseguiría el par de rayas del armario de arriba.",
+// Opciones del formulario: el valor es lo que recibe la IA; la etiqueta, lo que se ve.
+const ESPECIES = [
+  ["perro", "Perro"], ["gato", "Gato"], ["conejo", "Conejo"], ["hamster", "Hámster"],
+  ["cobaya", "Cobaya"], ["periquito", "Periquito"], ["tortuga", "Tortuga"], ["pez", "Pez"],
+  ["chinchilla", "Chinchilla"], ["huron", "Hurón"], ["erizo", "Erizo"], ["cerdito", "Cerdito"],
+  ["caballo", "Caballo"], ["loro", "Loro"], ["serpiente", "Serpiente"], ["tarantula", "Tarántula"],
+];
+const VISIBLES = 8; // El resto de especies se abre con «Más animales».
+const COLORES_ICONO = ["#FF8A2B", "#B69CFF", "#FFD23F", "#3DD6B0", "#FF8FB8", "#9FE3FF"];
+const PERSONALIDADES = [
+  ["muy dramático", "Dramático"], ["un genio incomprendido", "Genio incomprendido"], ["vago profesional", "Vago profesional"],
+  ["valiente sin motivo", "Valiente"], ["un cotilla", "Cotilla"], ["un tragón sin remedio", "Tragón"],
+  ["un miedica de campeonato", "Miedica"], ["juguetón sin descanso", "Juguetón"], ["un pegajoso incurable", "Pegajoso"],
+  ["presumido como una estrella", "Presumido"], ["un gruñón con buen corazón", "Gruñón"],
+];
+const TONOS = [
+  ["comedia", "Comedia", "#FFD23F", '<svg viewBox="0 0 32 32" aria-hidden="true" fill="#FFD23F" stroke="#2B1840" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="16" r="12"/><path d="M10 18c2 4 10 4 12 0" fill="none"/><path d="M11 12.5h.1M21 12.5h.1" stroke-width="3.5"/></svg>'],
+  ["película de espías", "Espías", "#3DD6B0", '<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="#2B1840" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13h24"/><path d="M5 13l1.5 6a3 3 0 0 0 3 2h2a3 3 0 0 0 3-2.5L15 15h2l.5 3.5a3 3 0 0 0 3 2.5h2a3 3 0 0 0 3-2l1.5-6" fill="#2B1840"/><path d="M9 13l2-6h10l2 6"/></svg>'],
+  ["detective", "Detective", "#9FE3FF", '<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="#2B1840" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="13" r="8" fill="#9FE3FF"/><path d="M19 19l8 8" stroke-width="4"/></svg>'],
+  ["epopeya", "Epopeya", "#D9E2EC", '<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="#2B1840" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 4l6 0 0 6-12 12-6-6z" fill="#D9E2EC"/><path d="M8 18l6 6M6 26l4-4M5 21l6 6"/></svg>'],
+  ["culebrón", "Culebrón", "#FF8FB8", '<svg viewBox="0 0 32 32" aria-hidden="true" fill="#FF8FB8" stroke="#2B1840" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 27S5 20.5 5 12a6 6 0 0 1 11-3.3A6 6 0 0 1 27 12c0 8.5-11 15-11 15z"/></svg>'],
+  ["documental animal", "Documental", "#3DD6B0", '<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="#2B1840" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="19" r="6" fill="#3DD6B0"/><circle cx="23" cy="19" r="6" fill="#3DD6B0"/><path d="M13 13l1-5h4l1 5M15 19h2"/></svg>'],
+  ["ciencia ficción", "Ciencia ficción", "#B69CFF", '<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="#2B1840" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3c5 3 7 8 7 14l-3 5h-8l-3-5c0-6 2-11 7-14z" fill="#B69CFF"/><circle cx="16" cy="13" r="2.5" fill="#fff"/><path d="M12 25l-1 4M16 25v4M20 25l1 4"/></svg>'],
+  ["aventura pirata", "Piratas", "#FFD23F", '<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="#2B1840" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="7" r="3"/><path d="M16 10v18M10 15h12"/><path d="M5 19c1 6 6 9 11 9s10-3 11-9"/></svg>'],
+  ["miedo para niños", "Miedo suave", "#B69CFF", '<svg viewBox="0 0 32 32" aria-hidden="true" fill="#fff" stroke="#2B1840" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 28V14a9 9 0 0 1 18 0v14l-3-2.5-3 2.5-3-2.5-3 2.5-3-2.5z"/><path d="M12.5 14h.1M19.5 14h.1" stroke-width="4"/></svg>'],
+];
+const COLORES = [
+  ["#c98a4f", "Canela"], ["#2e2a2a", "Negro"], ["#efe6da", "Blanco"], ["#8d8d99", "Gris"], ["#e08a3c", "Naranja"],
+  ["#7a5230", "Marrón"], ["#5fae4e", "Verde"], ["#4a90d9", "Azul"], ["#f2c94c", "Amarillo"],
+];
+const COLLARES = [["#d9503f", "Rojo"], ["#3f7fd9", "Azul"], ["#3fa37a", "Verde"], ["#e8a42c", "Amarillo"], ["ninguno", "Ninguno"]];
+const RASGOS = ["nombre", "especie", "personalidad", "mania", "color", "collar"];
+const LIMITES = { prueba: 3, basico: 8, premium: 1 };
+const NOMBRES_PLAN = { prueba: "Prueba gratis", basico: "Mensual", premium: "Premium" };
+const TICK = '<span class="marca-ok" aria-hidden="true"><svg><use href="#i-tick"/></svg></span>';
+
+const etiqueta = (lista, valor) => lista.find(([v]) => v === valor)?.[1] ?? valor;
+const escapar = (texto) => String(texto).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+const esperar = (ms) => new Promise((listo) => setTimeout(listo, ms));
+const euros = (n) => `${n.toFixed(2).replace(".", ",")} €`;
+const fecha = (d) => d.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" });
+
+const estado = {
+  config: null, cliente: null, sesion: null, cuenta: null, vista: "portada",
+  actual: null, pagina: 0, leyendo: false, audio: null, mascota: null, ultimaPeticion: null,
 };
 
+/* ---------- Fondos pintados por IA ---------- */
+
 const fondos = new Map(); // Cada fondo se descarga una vez por visita.
-const esperar = (ms) => new Promise((listo) => setTimeout(listo, ms));
 
 // Un fondo recién pedido puede tardar unos minutos en pintarse: mientras no exista, se vuelve a preguntar.
 function cargarFondo(historia, pagina) {
@@ -39,7 +82,7 @@ async function pintarFondo(contenedor, historia, pagina) {
   if (url && escena.isConnected) ponerFondo(escena, url, historia.paginas[pagina].imagen === "escena"); // Si ya se ha pasado de página, no se toca la nueva.
 }
 
-const estado = { config: null, cliente: null, sesion: null, cuenta: null, actual: null, pagina: 0, leyendo: false, audio: null };
+/* ---------- Utilidades ---------- */
 
 function leerBorrador() {
   try {
@@ -64,48 +107,23 @@ async function api(ruta, opciones = {}) {
   return fetch(ruta, { ...opciones, headers });
 }
 
-const dentro = () => estado.config.local || Boolean(estado.sesion);
+const dentro = () => estado.config?.local || Boolean(estado.sesion);
 
 function mostrar(vista) {
-  for (const id of ["inicio", "cargando", "libro"]) $(id).hidden = id !== vista;
+  estado.vista = vista;
+  for (const id of VISTAS) $(id).hidden = id !== vista;
+  document.body.className = `en-${vista}`;
+  if (vista !== "libro") parar();
   window.scrollTo(0, 0);
 }
 
-function fallo(mensaje) {
-  mostrar("inicio");
-  $("error").textContent = mensaje;
-  $("error").hidden = false;
-  $("crear").scrollIntoView();
+const inicio = () => mostrar(dentro() ? "panel" : "portada");
+
+function cerrarVentanas() {
+  for (const ventana of document.querySelectorAll("dialog[open]")) ventana.close();
 }
 
-function pintarCuenta() {
-  const { cuenta } = estado;
-  const conSesion = dentro();
-  $("entrar").hidden = conSesion;
-  $("salir").hidden = !conSesion || estado.config.local;
-  $("gestionar").hidden = !cuenta?.plan || estado.config.local;
-  $("borrar").hidden = !conSesion;
-
-  const historias = cuenta?.historias ?? [];
-  $("biblioteca").hidden = historias.length === 0;
-  pintarMascotas(historias);
-  $("saldo").textContent = !cuenta?.plan
-    ? ""
-    : cuenta.plan === "premium"
-      ? cuenta.quedan ? "Hoy le queda 1 historia nueva." : "Hoy ya ha estrenado su historia."
-      : `Le quedan ${cuenta.quedan} historias nuevas.`;
-  $("lista").replaceChildren(...historias.map((historia) => {
-    const li = document.createElement("li");
-    const boton = document.createElement("button");
-    boton.type = "button";
-    boton.textContent = historia.titulo;
-    boton.addEventListener("click", () => abrir(historia));
-    li.append(boton);
-    return li;
-  }));
-}
-
-const RASGOS = ["nombre", "especie", "personalidad", "mania", "color", "collar"];
+/* ---------- Panel: sus mascotas y sus historias ---------- */
 
 // Las mascotas guardadas salen de sus historias: la más reciente de cada nombre y especie.
 function misMascotas(historias) {
@@ -117,135 +135,203 @@ function misMascotas(historias) {
   return [...vistas.values()];
 }
 
-function nombreEspecie(especie) {
-  const opcion = $("formulario").elements.especie.querySelector(`option[value="${especie}"]`);
-  return opcion ? opcion.textContent.replace(/^(Un|Una) /, "") : especie;
+function inicial(nombre, i) {
+  const span = document.createElement("span");
+  span.className = "inicial d";
+  span.setAttribute("aria-hidden", "true");
+  span.style.background = COLORES_ICONO[i % COLORES_ICONO.length];
+  span.textContent = nombre.charAt(0).toUpperCase();
+  return span;
 }
 
-function elegirMascota(mascota, chip) {
-  const formulario = $("formulario");
-  for (const campo of RASGOS) {
-    const valor = mascota?.[campo] ?? formulario.elements[campo].querySelector?.("option")?.value ?? "";
-    formulario.elements[campo].value = valor;
-  }
-  for (const otro of $("lista-mascotas").children) otro.setAttribute("aria-pressed", String(otro === chip));
+function cuandoFue(texto) {
+  const dia = new Date(texto);
+  const hoy = new Date();
+  const ayer = new Date(Date.now() - 86400000);
+  if (dia.toDateString() === hoy.toDateString()) return "hoy";
+  if (dia.toDateString() === ayer.toDateString()) return "ayer";
+  return dia.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 }
 
 function pintarMascotas(historias) {
   const mascotas = misMascotas(historias);
-  $("mis-mascotas").hidden = mascotas.length === 0;
+  if (!mascotas.includes(estado.mascota)) estado.mascota = mascotas[0] ?? null;
+  $("sin-mascotas").hidden = mascotas.length > 0;
   const nueva = document.createElement("button");
   nueva.type = "button";
-  nueva.textContent = "+ Nueva";
-  nueva.addEventListener("click", () => elegirMascota(null, nueva));
-  $("lista-mascotas").replaceChildren(...mascotas.map((mascota) => {
+  nueva.className = "chip chip-nueva";
+  nueva.innerHTML = '<svg width="20" height="20" aria-hidden="true"><use href="#i-mas"/></svg>';
+  nueva.append(mascotas.length ? "Nueva" : "Nueva mascota");
+  nueva.addEventListener("click", () => abrirCrear(null));
+  $("chips-mascotas").replaceChildren(...mascotas.map((mascota, i) => {
     const chip = document.createElement("button");
     chip.type = "button";
-    chip.setAttribute("aria-pressed", "false");
-    chip.textContent = `${mascota.nombre} · ${nombreEspecie(mascota.especie)}`;
-    chip.addEventListener("click", () => elegirMascota(mascota, chip));
+    chip.className = "chip";
+    chip.setAttribute("aria-pressed", String(mascota === estado.mascota));
+    chip.append(inicial(mascota.nombre, i), `${mascota.nombre} · ${etiqueta(ESPECIES, mascota.especie).toLowerCase()}`);
+    chip.addEventListener("click", () => {
+      estado.mascota = mascota;
+      pintarMascotas(historias);
+    });
     return chip;
   }), nueva);
+  $("nueva-historia-texto").textContent = estado.mascota ? `Nueva historia de ${estado.mascota.nombre}` : "Crear una historia";
+}
+
+function pintarSaldo() {
+  const { plan, quedan } = estado.cuenta ?? {};
+  $("saldo").hidden = !plan;
+  if (!plan) return;
+  const limite = LIMITES[plan];
+  $("t-saldo").textContent = plan === "premium"
+    ? quedan ? "Hoy le queda 1 historia nueva" : "Hoy ya ha estrenado su historia"
+    : `Le ${quedan === 1 ? "queda 1 historia nueva" : `quedan ${quedan} historias nuevas`}`;
+  $("saldo-de").textContent = plan === "premium" ? "cada día" : `de ${limite}`;
+  $("saldo-barra").style.gridTemplateColumns = `repeat(${limite}, minmax(0, 1fr))`;
+  $("saldo-barra").setAttribute("aria-label", `${limite - quedan} de ${limite} historias usadas`);
+  $("saldo-barra").replaceChildren(...Array.from({ length: limite }, (_, i) => {
+    const trozo = document.createElement("span");
+    if (i >= limite - quedan) trozo.className = "libre";
+    return trozo;
+  }));
+  $("saldo-plan").textContent = `Plan ${NOMBRES_PLAN[plan]} ·`;
+}
+
+function pintarHistorias(historias) {
+  $("num-historias").textContent = historias.length === 1 ? "1 historia" : `${historias.length} historias`;
+  $("num-historias").hidden = historias.length === 0;
+  $("sin-historias").hidden = historias.length > 0;
+  $("lista-historias").replaceChildren(...historias.map((historia) => {
+    const tono = TONOS.find(([v]) => v === historia.mascota.tono) ?? TONOS[0];
+    const li = document.createElement("li");
+    const boton = document.createElement("button");
+    boton.type = "button";
+    boton.className = "historia";
+    boton.innerHTML = `<span class="miniatura" aria-hidden="true" style="background:${tono[2]}">${tono[3]}</span>
+      <span class="historia-texto"><span class="historia-titulo">${escapar(historia.titulo)}</span>
+      <span class="historia-meta">${escapar(historia.mascota.nombre)} · ${tono[1]} · ${cuandoFue(historia.creado)}</span></span>`;
+    boton.addEventListener("click", () => abrir(historia));
+    li.append(boton);
+    return li;
+  }));
+}
+
+function pintarCuenta() {
+  const conSesion = dentro();
+  $("entrar").hidden = conSesion;
+  $("mi-cuenta").hidden = !conSesion;
+  const historias = estado.cuenta?.historias ?? [];
+  $("panel-cargando").hidden = true;
+  $("panel-contenido").hidden = false;
+  pintarMascotas(historias);
+  pintarSaldo();
+  pintarHistorias(historias);
+  pintarUsara();
 }
 
 async function refrescar() {
   if (!dentro()) {
     estado.cuenta = null;
   } else {
-    const respuesta = await api("/api/yo");
-    estado.cuenta = respuesta.ok ? await respuesta.json() : null;
+    const respuesta = await api("/api/yo").catch(() => null);
+    estado.cuenta = respuesta?.ok ? await respuesta.json() : null;
   }
   pintarCuenta();
 }
 
-function pintarPagina() {
-  const { actual, pagina } = estado;
-  const datos = actual.paginas[pagina];
-  const texto = document.createElement("p");
-  texto.textContent = datos.texto;
-  $("pagina").innerHTML = ilustrar(datos, actual.mascota);
-  $("pagina").append(texto);
-  pintarFondo($("pagina"), actual, pagina);
-  if (actual.paginas[pagina + 1]?.imagen) cargarFondo(actual.id, pagina + 1);
-  $("contador").textContent = `${pagina + 1} de ${actual.paginas.length}`;
-  $("anterior").disabled = pagina === 0;
-  $("siguiente").disabled = pagina === actual.paginas.length - 1;
+/* ---------- Formulario de crear historia ---------- */
+
+function opcion(clase, nombre, valor, contenido) {
+  const label = document.createElement("label");
+  label.className = clase;
+  label.innerHTML = `<input type="radio" name="${nombre}" value="${escapar(valor)}">${contenido}`;
+  return label;
 }
 
-function abrir(historia) {
-  parar();
-  estado.actual = historia;
-  estado.pagina = 0;
-  $("titulo-libro").textContent = historia.titulo;
-  $("aviso-muestra").hidden = historia.modo !== "muestra";
-  pintarPagina();
-  mostrar("libro");
+function construirFormulario() {
+  $("especies").replaceChildren(...ESPECIES.map(([valor, nombre], i) => {
+    const tile = opcion("tile", "especie", valor, `<span class="inicial d" aria-hidden="true" style="background:${COLORES_ICONO[i % COLORES_ICONO.length]}">${nombre.charAt(0)}</span>${nombre}${TICK}`);
+    tile.dataset.extra = String(i >= VISIBLES);
+    return tile;
+  }));
+  $("personalidades").replaceChildren(...PERSONALIDADES.map(([valor, nombre]) => opcion("pastilla", "personalidad", valor, escapar(nombre))));
+  $("tonos").replaceChildren(...TONOS.map(([valor, nombre, , icono]) => opcion("tile", "tono", valor, `${icono}${nombre}${TICK}`)));
+  $("colores").replaceChildren(...COLORES.map(([valor, nombre]) => opcion("muestra", "color", valor, `<span class="punto" style="background:${valor}"></span>${nombre}${TICK}`)));
+  $("collares").replaceChildren(...COLLARES.map(([valor, nombre]) => opcion("muestra", "collar", valor,
+    `<span class="punto ${valor === "ninguno" ? "punto-ninguno" : "punto-collar"}" ${valor === "ninguno" ? "" : `style="border-color:${valor}"`}></span>${nombre}${TICK}`)));
 }
 
-function irA(pagina) {
-  estado.pagina = pagina;
-  pintarPagina();
+function mostrarEspecies(todas) {
+  const elegida = $("formulario").elements.especie.value;
+  const extra = ESPECIES.findIndex(([v]) => v === elegida) >= VISIBLES;
+  const abiertas = todas || extra;
+  for (const tile of $("especies").children) tile.hidden = tile.dataset.extra === "true" && !abiertas;
+  $("mas-especies").setAttribute("aria-expanded", String(abiertas));
+  $("mas-especies").querySelector("span").textContent = abiertas ? "Ver menos animales" : `Más animales (${ESPECIES.length - VISIBLES})`;
+  $("mas-especies").hidden = extra;
 }
 
-function parar() {
-  estado.leyendo = false;
-  estado.audio?.pause();
-  estado.audio = null;
-  $("leer").textContent = "▶ Escuchar";
-}
-
-// Pausar conserva el audio de la página, así "Continuar" sigue en el mismo segundo.
-function pausar() {
-  estado.leyendo = false;
-  estado.audio?.pause();
-  $("leer").textContent = "▶ Continuar";
-}
-
-async function leerPagina() {
-  const respuesta = await api("/api/voz", {
-    method: "POST",
-    body: JSON.stringify({ historia: estado.actual.id, pagina: estado.pagina, voz: $("voz").value }),
-  });
-  if (!estado.leyendo) return;
-  if (!respuesta.ok) {
-    parar();
-    $("leer").textContent = "No se ha podido leer. Reintentar";
-    return;
+// Rellena el formulario con una mascota guardada, o lo deja en blanco con las primeras opciones.
+function ponerMascota(mascota) {
+  const elementos = $("formulario").elements;
+  const primeras = { especie: ESPECIES[0][0], personalidad: PERSONALIDADES[0][0], tono: TONOS[0][0], color: COLORES[0][0], collar: COLLARES[0][0] };
+  for (const campo of [...RASGOS, "tono"]) {
+    const valor = mascota?.[campo] ?? primeras[campo] ?? "";
+    const control = elementos[campo];
+    control.value = valor;
+    if (control instanceof RadioNodeList && control.value !== valor) control.value = primeras[campo];
   }
-  const audio = new Audio(URL.createObjectURL(await respuesta.blob()));
-  if (!estado.leyendo) return;
-  estado.audio = audio;
-  audio.onended = () => {
-    if (!estado.leyendo) return;
-    if (estado.pagina < estado.actual.paginas.length - 1) {
-      irA(estado.pagina + 1);
-      leerPagina();
-    } else {
-      parar();
-    }
-  };
-  await audio.play();
+  for (const campo of ["nombre", "mania"]) marcarError(campo, false);
+  mostrarEspecies(false);
+  pintarResumen();
 }
 
-function abrirMuro() {
-  const plan = estado.cuenta?.plan ?? null;
-  const premium = plan === "premium";
-  $("muro-titulo").textContent = plan ? "Ya ha usado sus historias" : "Elige su plan";
-  $("muro-texto").textContent = premium
-    ? "Mañana tendrá otra historia nueva. Hoy puede volver a escuchar las que ya tiene."
-    : plan
-      ? "Con Premium tendría 1 historia nueva cada día. El cambio de plan se cobra hoy."
-      : "Historias ilustradas y narradas. Volver a escucharlas no cuenta como historia nueva.";
-  $("plan-basico").hidden = Boolean(plan);
-  $("plan-premium").hidden = premium;
-  $("bloque-aceptar").hidden = premium;
-  $("muro-error").hidden = true;
-  $("muro").showModal();
+function pintarResumen() {
+  const datos = Object.fromEntries(new FormData($("formulario")));
+  const nombre = datos.nombre?.trim() || "Su mascota";
+  const collar = datos.collar === "ninguno" ? "sin collar ni lazo" : `collar ${etiqueta(COLLARES, datos.collar).toLowerCase()}`;
+  $("resumen").textContent = [
+    nombre,
+    `${etiqueta(ESPECIES, datos.especie).toLowerCase()} ${etiqueta(PERSONALIDADES, datos.personalidad).toLowerCase()}`,
+    `${etiqueta(COLORES, datos.color).toLowerCase()}, ${collar}`,
+    etiqueta(TONOS, datos.tono).toLowerCase(),
+  ].join(" · ");
 }
 
-function pedirAcceso() {
-  $("acceso-aviso").hidden = true;
-  $("acceso").showModal();
+function pintarUsara() {
+  const { plan, quedan } = estado.cuenta ?? {};
+  $("usara").textContent = !plan
+    ? "3 días gratis · luego 4,99 €/mes"
+    : plan === "premium"
+      ? "Usará su historia nueva de hoy"
+      : quedan ? `Usará 1 de sus ${quedan} historias nuevas` : "Ya ha usado sus historias nuevas";
+}
+
+function marcarError(campo, hay) {
+  $(campo).setAttribute("aria-invalid", String(hay));
+  $(`${campo}-error`).hidden = !hay;
+}
+
+function abrirCrear(mascota) {
+  cerrarVentanas();
+  ponerMascota(mascota);
+  $("error").hidden = true;
+  mostrar("crear");
+}
+
+function volver() {
+  cerrarVentanas();
+  inicio();
+}
+
+/* ---------- Espera y creación ---------- */
+
+function fase(nombre, porcentaje, texto) {
+  $("progreso").textContent = texto;
+  $("barra-progreso").setAttribute("aria-valuenow", String(porcentaje));
+  $("barra-progreso").querySelector(".relleno").style.width = `${porcentaje}%`;
+  $("etapa-escribir").className = nombre === "escribir" ? "actual" : "hecha";
+  $("etapa-pintar").className = nombre === "pintar" ? "actual" : nombre === "lista" ? "hecha" : "";
 }
 
 const ESPERA_MAXIMA = 150000; // Si los fondos se atascan, la historia se abre igual y terminan de llegar dentro.
@@ -254,34 +340,43 @@ const ESPERA_MAXIMA = 150000; // Si los fondos se atascan, la historia se abre i
 async function esperarFondos(historia) {
   const primeras = historia.paginas.slice(0, 3).flatMap((pagina, i) => (pagina.imagen ? [cargarFondo(historia.id, i)] : []));
   let listas = 0;
-  const contar = () => ($("progreso").textContent = `Pintando sus escenarios: ${listas} de ${primeras.length}…`);
+  const contar = () => fase("pintar", 40 + Math.round((55 * listas) / Math.max(primeras.length, 1)), `Pintando sus escenarios: ${listas} de ${primeras.length}…`);
   contar();
   const todas = Promise.all(primeras.map((fondo) => fondo.then(() => { listas++; contar(); })));
   await Promise.race([todas, esperar(ESPERA_MAXIMA)]);
 }
 
 async function crear(mascota) {
+  estado.ultimaPeticion = mascota;
   mostrar("cargando");
-  $("progreso").textContent = `Escribiendo la historia de ${mascota.nombre}…`;
-  $("abrir-lista").hidden = true;
+  $("progreso-caja").hidden = false;
+  $("lista").hidden = true;
+  $("fallo").hidden = true;
+  fase("escribir", 15, `Escribiendo la historia de ${mascota.nombre}…`);
   empezarQuiz();
   try {
     const respuesta = await api("/api/historia", { method: "POST", body: JSON.stringify(mascota) });
     const datos = await respuesta.json();
     if (respuesta.status === 402) {
-      mostrar("inicio");
+      await refrescar();
+      inicio();
       return abrirMuro();
     }
     if (!respuesta.ok) throw new Error(datos.error);
     guardarBorrador(null);
     await Promise.all([refrescar(), esperarFondos(datos)]);
     // No se abre sola: así nadie se queda a medias de una pregunta del quiz.
-    $("progreso").textContent = "¡Ya está!";
+    fase("lista", 100, "¡Ya está!");
+    $("progreso-caja").hidden = true;
+    $("lista-titulo").textContent = `¡La historia de ${mascota.nombre} está lista!`;
     $("abrir-lista").onclick = () => abrir(datos);
-    $("abrir-lista").hidden = false;
+    $("lista").hidden = false;
     $("abrir-lista").focus();
   } catch (error) {
-    fallo(error.message || "No hemos podido escribir la historia. Inténtalo otra vez.");
+    $("progreso-caja").hidden = true;
+    $("fallo-texto").textContent = `No hemos podido terminar la historia de ${mascota.nombre}. No se ha gastado ninguna de sus historias.`;
+    $("fallo").hidden = false;
+    console.error(error);
   }
 }
 
@@ -292,7 +387,7 @@ function pedirHistoria(mascota) {
   }
   if (!estado.cuenta?.quedan) {
     guardarBorrador(mascota);
-    return abrirMuro();
+    return estado.cuenta?.plan ? abrirAgotadas() : abrirMuro();
   }
   crear(mascota);
 }
@@ -301,88 +396,359 @@ function pedirHistoria(mascota) {
 function continuar() {
   const borrador = leerBorrador();
   if (!borrador) return;
-  const formulario = $("formulario");
-  for (const [campo, valor] of Object.entries(borrador)) {
-    if (formulario.elements[campo]) formulario.elements[campo].value = valor;
-  }
+  ponerMascota(borrador);
   pedirHistoria(borrador);
 }
 
 // Stripe avisa al servidor por su cuenta: el plan puede tardar unos segundos en llegar.
 async function esperarPlan() {
   for (let intento = 0; intento < 15 && !estado.cuenta?.plan; intento++) {
-    await new Promise((listo) => setTimeout(listo, 1000));
+    await esperar(1000);
     await refrescar();
   }
+}
+
+/* ---------- Lectura y narración ---------- */
+
+function pintarPagina() {
+  const { actual, pagina } = estado;
+  const datos = actual.paginas[pagina];
+  const total = actual.paginas.length;
+  $("pagina").innerHTML = ilustrar(datos, actual.mascota);
+  $("texto-pagina").textContent = datos.texto;
+  $("texto-pagina").style.animation = "none";
+  void $("texto-pagina").offsetWidth; // Reinicia la animación de entrada del texto.
+  $("texto-pagina").style.animation = "";
+  pintarFondo($("pagina"), actual, pagina);
+  if (actual.paginas[pagina + 1]?.imagen) cargarFondo(actual.id, pagina + 1);
+  $("contador").textContent = `${pagina + 1} de ${total}`;
+  $("puntos").replaceChildren(...actual.paginas.map((_, i) => {
+    const punto = document.createElement("span");
+    punto.className = i === pagina ? "actual" : i < pagina ? "leida" : "";
+    return punto;
+  }));
+  $("anterior").disabled = pagina === 0;
+  $("siguiente").hidden = pagina === total - 1;
+  $("fin").hidden = pagina !== total - 1;
+}
+
+function abrir(historia) {
+  parar();
+  estado.actual = historia;
+  estado.pagina = 0;
+  $("titulo-libro").textContent = historia.titulo;
+  $("aviso-muestra").hidden = historia.modo !== "muestra";
+  $("aviso-voz").hidden = true;
+  pintarPagina();
+  mostrar("libro");
+}
+
+function irA(pagina) {
+  estado.pagina = pagina;
+  pintarPagina();
+}
+
+// Estados de la barra de audio: parado, cargando, sonando o en pausa.
+function audioEn(como) {
+  const sonando = como === "sonando" || como === "cargando";
+  $("leer").classList.toggle("sonando", sonando);
+  $("leer").setAttribute("aria-label", sonando ? "Pausar" : como === "pausa" ? "Continuar" : "Escuchar");
+  $("estado-audio").textContent = { parado: "Escuchar", cargando: "Cargando la voz…", sonando: "Escuchando", pausa: "En pausa" }[como];
+}
+
+function parar() {
+  estado.leyendo = false;
+  estado.audio?.pause();
+  estado.audio = null;
+  audioEn("parado");
+}
+
+// Pausar conserva el audio de la página, así "Continuar" sigue en el mismo segundo.
+function pausar() {
+  estado.leyendo = false;
+  estado.audio?.pause();
+  audioEn("pausa");
+}
+
+// El audio llega en streaming: empieza a sonar en cuanto llegan los primeros trozos.
+async function prepararAudio(historia, pagina, voz) {
+  const respuesta = await api("/api/voz", { method: "POST", body: JSON.stringify({ historia, pagina, voz }) }).catch(() => null);
+  if (!respuesta?.ok) return null;
+  const audio = new Audio((await respuesta.json()).url);
+  audio.preload = "auto";
+  return audio;
+}
+
+let siguiente = null; // La página siguiente se prepara mientras suena la actual.
+
+async function leerPagina() {
+  const { id, paginas } = estado.actual;
+  const pagina = estado.pagina;
+  const voz = $("voz").value;
+  const clave = `${id}-${pagina}-${voz}`;
+  audioEn("cargando");
+  $("aviso-voz").hidden = true;
+  const promesa = siguiente?.clave === clave ? siguiente.promesa : prepararAudio(id, pagina, voz);
+  siguiente = null;
+  const audio = await promesa;
+  if (!estado.leyendo) return;
+  if (!audio) {
+    parar();
+    $("aviso-voz").hidden = false;
+    return;
+  }
+  estado.audio = audio;
+  if (pagina < paginas.length - 1) siguiente = { clave: `${id}-${pagina + 1}-${voz}`, promesa: prepararAudio(id, pagina + 1, voz) };
+  audio.onended = () => {
+    if (!estado.leyendo) return;
+    if (estado.pagina < estado.actual.paginas.length - 1) {
+      irA(estado.pagina + 1);
+      leerPagina();
+    } else {
+      parar();
+    }
+  };
+  audio.onplaying = () => estado.leyendo && audioEn("sonando");
+  await audio.play().catch(() => {
+    parar();
+    $("aviso-voz").hidden = false;
+  });
+}
+
+function escuchar() {
+  estado.leyendo = true;
+  if (estado.audio) {
+    audioEn("sonando");
+    estado.audio.play();
+  } else {
+    leerPagina();
+  }
+}
+
+/* ---------- Ventanas ---------- */
+
+function pedirAcceso() {
+  $("acceso-formulario").hidden = false;
+  $("acceso-enviado").hidden = true;
+  $("acceso-aviso").hidden = true;
+  $("acceso").showModal();
+}
+
+function pintarPago() {
+  const plan = $("muro").querySelector("input[name=plan]:checked")?.value;
+  const mejora = Boolean(estado.cuenta?.plan);
+  const dentroDe = (dias) => fecha(new Date(Date.now() + dias * 86400000));
+  $("muro").querySelector(".resumen-pago").hidden = mejora;
+  if (plan === "premium") {
+    $("hoy-paga").textContent = euros(19.99);
+    $("cobro-cuando").textContent = `Siguiente cobro, ${dentroDe(30)}`;
+    $("cobro-cuanto").textContent = euros(19.99);
+    $("pagar").textContent = mejora ? "Pasar a Premium" : "Elegir Premium";
+  } else {
+    $("hoy-paga").textContent = euros(0);
+    $("cobro-cuando").textContent = `Primer cobro, ${dentroDe(3)}`;
+    $("cobro-cuanto").textContent = euros(4.99);
+    $("pagar").textContent = "Probar 3 días gratis";
+  }
+}
+
+// Sin plan se elige entre los dos; con plan, solo queda pasar a Premium (se cobra hoy, descontando lo que quede).
+function abrirMuro() {
+  cerrarVentanas();
+  const mejora = Boolean(estado.cuenta?.plan);
+  $("muro-titulo").textContent = mejora ? "Pasar a Premium" : "Elija su plan";
+  $("opcion-mensual").hidden = mejora;
+  $("muro").querySelector(`input[value=${mejora ? "premium" : "prueba"}]`).checked = true;
+  $("opcion-premium").querySelector(".texto-suave").textContent = mejora
+    ? "1 historia al día · se cobra hoy, descontando lo que quede de su plan"
+    : "1 historia al día · se cobra hoy";
+  $("muro-error").hidden = true;
+  pintarPago();
+  $("muro").showModal();
+}
+
+function abrirAgotadas() {
+  cerrarVentanas();
+  const { plan } = estado.cuenta;
+  const textos = {
+    prueba: ["Ya ha usado sus 3 historias de prueba", "Cuando acabe la prueba tendrá 8 nuevas cada mes. O pase a Premium y tenga una cada día."],
+    basico: ["Ya ha usado sus 8 historias de este mes", "Tendrá 8 nuevas cuando empiece su próximo mes. Mientras, puede releer todas las que ya tiene."],
+    premium: ["Hoy ya ha estrenado su historia", "Mañana tendrá otra nueva. Mientras, puede releer todas las que ya tiene."],
+  }[plan];
+  $("agotadas-titulo").textContent = textos[0];
+  $("agotadas-texto").textContent = textos[1];
+  $("a-premium").hidden = plan === "premium";
+  $("agotadas").showModal();
+}
+
+function abrirCuenta() {
+  const { plan, quedan, email } = estado.cuenta ?? {};
+  $("cuenta-plan").textContent = plan ? `${NOMBRES_PLAN[plan]}${plan === "premium" ? " · 19,99 €/mes" : plan === "basico" ? " · 4,99 €/mes" : ""}` : "Sin plan";
+  $("cuenta-historias").textContent = !plan ? "—" : plan === "premium" ? (quedan ? "Hoy le queda 1" : "Hoy ya la ha usado") : `Le quedan ${quedan} de ${LIMITES[plan]}`;
+  $("cuenta-email").textContent = email ?? "Modo local";
+  $("cuenta-premium").hidden = !plan || plan === "premium";
+  $("cuenta-elegir").hidden = Boolean(plan);
+  $("gestionar").hidden = !plan || estado.config.local;
+  $("salir").hidden = estado.config.local;
+  $("cuenta-error").hidden = true;
+  $("cuenta").showModal();
+}
+
+/* ---------- Eventos ---------- */
+
+construirFormulario();
+ponerMascota(null);
+
+document.addEventListener("click", (evento) => {
+  const objetivo = evento.target.closest("[data-ir], [data-volver], [data-cerrar], [data-abrir]");
+  if (!objetivo) return;
+  if (objetivo.dataset.ir === "crear") abrirCrear(null);
+  else if ("volver" in objetivo.dataset) volver();
+  else if ("cerrar" in objetivo.dataset) objetivo.closest("dialog").close();
+  else if (objetivo.dataset.abrir === "cuenta") abrirCuenta();
+});
+
+$("marca").addEventListener("click", (evento) => {
+  evento.preventDefault();
+  cerrarVentanas();
+  inicio();
+});
+
+$("nueva-historia").addEventListener("click", () => abrirCrear(estado.mascota));
+$("mas-especies").addEventListener("click", () => mostrarEspecies($("mas-especies").getAttribute("aria-expanded") !== "true"));
+$("formulario").addEventListener("input", (evento) => {
+  if (evento.target.name === "nombre" || evento.target.name === "mania") marcarError(evento.target.name, false);
+  pintarResumen();
+});
+$("formulario").addEventListener("change", pintarResumen);
+for (const idea of document.querySelectorAll(".idea")) {
+  idea.addEventListener("click", () => {
+    $("mania").value = idea.textContent;
+    marcarError("mania", false);
+  });
 }
 
 $("formulario").addEventListener("submit", (evento) => {
   evento.preventDefault();
   $("error").hidden = true;
-  pedirHistoria(Object.fromEntries(new FormData(evento.target)));
+  const datos = Object.fromEntries(new FormData(evento.target));
+  datos.nombre = datos.nombre.trim();
+  datos.mania = datos.mania.trim();
+  marcarError("nombre", !datos.nombre);
+  marcarError("mania", !datos.mania);
+  if (!datos.nombre || !datos.mania) return $(datos.nombre ? "mania" : "nombre").focus();
+  pedirHistoria(datos);
 });
+
+$("reintentar").addEventListener("click", () => estado.ultimaPeticion && crear(estado.ultimaPeticion));
 
 $("formulario-acceso").addEventListener("submit", async (evento) => {
   evento.preventDefault();
   const boton = evento.target.querySelector("button");
   if (boton.disabled) return;
+  const email = $("email").value.trim();
+  if (!$("email").checkValidity() || !email) {
+    $("acceso-aviso").textContent = "Escriba un email válido.";
+    $("acceso-aviso").hidden = false;
+    return;
+  }
   boton.disabled = true;
-  const email = new FormData(evento.target).get("email");
   const { error } = await estado.cliente.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin } });
   boton.disabled = false;
-  $("acceso-aviso").textContent = !error
-    ? "Te lo hemos enviado. Mira tu correo, y también la carpeta de spam."
-    : error.status === 429
-      ? "Hemos enviado varios enlaces seguidos. Mira tu correo, también en spam, o vuelve a intentarlo en unos minutos."
-      : "No hemos podido enviarlo. Inténtalo otra vez.";
+  if (!error) {
+    $("acceso-email").textContent = email;
+    $("acceso-formulario").hidden = true;
+    $("acceso-enviado").hidden = false;
+    return;
+  }
+  $("acceso-aviso").textContent = error.status === 429
+    ? "Hemos enviado varios enlaces seguidos. Mire su correo, también en spam, o vuelva a intentarlo en unos minutos."
+    : "No hemos podido enviarlo. Inténtelo otra vez.";
   $("acceso-aviso").hidden = false;
 });
+$("otro-email").addEventListener("click", () => {
+  $("acceso-enviado").hidden = true;
+  $("acceso-formulario").hidden = false;
+  $("email").select();
+});
 
-for (const boton of document.querySelectorAll("[data-plan]")) {
-  boton.addEventListener("click", async () => {
-    if (!$("empezar-ya").checked) {
-      $("muro-error").textContent = "Marca la casilla para continuar.";
-      $("muro-error").hidden = false;
-      return;
-    }
-    boton.disabled = true;
-    const respuesta = await api("/api/pago", {
-      method: "POST",
-      body: JSON.stringify({ plan: boton.dataset.plan, empezarYa: true }),
-    });
-    boton.disabled = false;
-    if (!respuesta.ok) {
-      $("muro-error").textContent = "No hemos podido abrir el pago. Inténtalo otra vez.";
-      $("muro-error").hidden = false;
-      return;
-    }
-    location.href = (await respuesta.json()).url;
-  });
-}
+$("muro").addEventListener("change", (evento) => {
+  if (evento.target.name === "plan") pintarPago();
+  if (evento.target.id === "empezar-ya") $("muro-error").hidden = true;
+});
+$("pagar").addEventListener("click", async () => {
+  if (!$("empezar-ya").checked) {
+    $("muro-error").textContent = "Marque la casilla para continuar.";
+    $("muro-error").hidden = false;
+    return;
+  }
+  const plan = $("muro").querySelector("input[name=plan]:checked").value;
+  $("pagar").disabled = true;
+  const respuesta = await api("/api/pago", { method: "POST", body: JSON.stringify({ plan, empezarYa: true }) }).catch(() => null);
+  $("pagar").disabled = false;
+  if (!respuesta?.ok) {
+    $("muro-error").textContent = "No hemos podido abrir el pago. Inténtelo otra vez.";
+    $("muro-error").hidden = false;
+    return;
+  }
+  location.href = (await respuesta.json()).url;
+});
+$("a-premium").addEventListener("click", abrirMuro);
 
 $("entrar").addEventListener("click", pedirAcceso);
-$("cerrar-acceso").addEventListener("click", () => $("acceso").close());
-$("cerrar-muro").addEventListener("click", () => $("muro").close());
+$("mi-cuenta").addEventListener("click", abrirCuenta);
+$("cuenta-premium").addEventListener("click", abrirMuro);
+$("cuenta-elegir").addEventListener("click", abrirMuro);
 $("salir").addEventListener("click", async () => {
   await estado.cliente.auth.signOut();
   location.href = "/";
 });
 $("gestionar").addEventListener("click", async () => {
-  const respuesta = await api("/api/portal", { method: "POST" });
-  if (respuesta.ok) location.href = (await respuesta.json()).url;
+  const respuesta = await api("/api/portal", { method: "POST" }).catch(() => null);
+  if (respuesta?.ok) return void (location.href = (await respuesta.json()).url);
+  $("cuenta-error").textContent = "No hemos podido abrir la gestión del pago. Inténtelo otra vez.";
+  $("cuenta-error").hidden = false;
 });
-$("borrar").addEventListener("click", async () => {
-  if (!confirm("Se cancelará tu suscripción y se borrarán tu cuenta y todos sus historias. No se puede deshacer.")) return;
-  const respuesta = await api("/api/cuenta", { method: "DELETE" });
-  if (!respuesta.ok) return alert("No hemos podido borrarla. Escríbenos y lo hacemos nosotros.");
+$("borrar").addEventListener("click", () => {
+  const historias = estado.cuenta?.historias ?? [];
+  const mascotas = misMascotas(historias).length;
+  $("borrar-texto").innerHTML = `Se borrarán ${mascotas === 1 ? "su mascota" : `sus ${mascotas} mascotas`}, ${historias.length === 1 ? "su historia" : `sus ${historias.length} historias`} y su email, y se cancelará la suscripción. <strong>No se puede deshacer.</strong>`;
+  $("confirmacion").value = "";
+  $("borrar-error").hidden = true;
+  $("cuenta").close();
+  $("confirmar-borrado").showModal();
+});
+$("formulario-borrar").addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  if ($("confirmacion").value.trim().toUpperCase() !== "BORRAR") {
+    $("borrar-error").textContent = "Escriba BORRAR para confirmar.";
+    $("borrar-error").hidden = false;
+    return;
+  }
+  const respuesta = await api("/api/cuenta", { method: "DELETE" }).catch(() => null);
+  if (!respuesta?.ok) {
+    $("borrar-error").textContent = "No hemos podido borrarla. Escríbanos y lo hacemos nosotros.";
+    $("borrar-error").hidden = false;
+    return;
+  }
   await estado.cliente?.auth.signOut();
   location.href = "/";
 });
+
+// Ejemplo de la portada: se escucha sin cuenta.
+const ejemplo = new Audio("img/ejemplo.mp3");
+ejemplo.preload = "none";
+const pintarEjemplo = () => {
+  const sonando = !ejemplo.paused;
+  $("ejemplo-escuchar").querySelector("use").setAttribute("href", sonando ? "#i-pausa" : "#i-play");
+  $("ejemplo-escuchar").querySelector("span").textContent = sonando ? "Pausar" : "Escuchar";
+};
+$("ejemplo-escuchar").addEventListener("click", () => (ejemplo.paused ? ejemplo.play() : ejemplo.pause()));
+for (const evento of ["play", "pause", "ended"]) ejemplo.addEventListener(evento, pintarEjemplo);
+
 $("anterior").addEventListener("click", () => { parar(); irA(estado.pagina - 1); });
 $("siguiente").addEventListener("click", () => { parar(); irA(estado.pagina + 1); });
-$("volver").addEventListener("click", () => { parar(); mostrar("inicio"); });
-// Vuelve a narrar la página actual desde su primer segundo.
-const VOZ = "mascotadas.voz";
+
 try {
   const guardada = localStorage.getItem(VOZ);
   if ([...$("voz").options].some((o) => o.value === guardada)) $("voz").value = guardada;
@@ -398,36 +764,36 @@ $("voz").addEventListener("change", () => {
   parar();
   if (!seguia) return;
   estado.leyendo = true;
-  $("leer").textContent = "⏸ Pausar";
   leerPagina();
 });
 
+// Vuelve a narrar la página actual desde su primer segundo.
 $("reiniciar").addEventListener("click", () => {
   const cargando = estado.leyendo && !estado.audio; // Ya se está pidiendo el audio: empezará desde el principio igual.
   estado.leyendo = true;
-  $("leer").textContent = "⏸ Pausar";
-  if (!estado.audio) return cargando || leerPagina();
-  estado.audio.currentTime = 0;
-  estado.audio.play();
+  if (cargando) return;
+  const audio = estado.audio;
+  if (audio?.buffered.length && audio.buffered.start(0) === 0) {
+    audio.currentTime = 0;
+    audioEn("sonando");
+    return void audio.play();
+  }
+  // Sin el principio en memoria se vuelve a pedir; si ya terminó de generarse, sale del almacén.
+  estado.audio?.pause();
+  estado.audio = null;
+  leerPagina();
 });
-$("leer").addEventListener("click", () => {
-  if (estado.leyendo) return pausar();
-  estado.leyendo = true;
-  $("leer").textContent = "⏸ Pausar";
-  if (estado.audio) estado.audio.play();
-  else leerPagina();
+$("leer").addEventListener("click", () => (estado.leyendo ? pausar() : escuchar()));
+$("reintentar-voz").addEventListener("click", () => {
+  $("aviso-voz").hidden = true;
+  escuchar();
 });
+
+/* ---------- Arranque ---------- */
 
 async function iniciar() {
-  $("ejemplo").innerHTML = ilustrar(EJEMPLO, { especie: "perro", color: "#c98a4f", collar: "#d9503f" });
-  const texto = document.createElement("p");
-  texto.textContent = EJEMPLO.texto;
-  $("ejemplo").append(texto);
-
   estado.config = await (await fetch("/api/estado")).json();
-  $("leer").hidden = !estado.config.voz;
-  $("reiniciar").hidden = !estado.config.voz;
-  $("voz").hidden = !estado.config.voz;
+  $("narracion").hidden = !estado.config.voz;
 
   if (!estado.config.local) {
     estado.cliente = window.supabase.createClient(estado.config.supabaseUrl, estado.config.supabaseAnon);
@@ -436,11 +802,14 @@ async function iniciar() {
       const acabaDeEntrar = evento === "SIGNED_IN" && !estado.sesion;
       estado.sesion = sesion;
       if (!acabaDeEntrar) return;
+      cerrarVentanas();
+      mostrar("panel");
       await refrescar();
       continuar();
     });
   }
 
+  if (dentro()) mostrar("panel");
   await refrescar();
 
   const pago = new URLSearchParams(location.search).get("pago");
