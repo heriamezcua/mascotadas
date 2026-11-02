@@ -403,6 +403,19 @@ function volver() {
 
 /* ---------- Espera y creación ---------- */
 
+// El récord del quiz viaja con la cuenta: se guarda en los datos del usuario de Supabase.
+function opcionesQuiz() {
+  const usuario = estado.sesion?.user;
+  if (!usuario || !estado.cliente) return {};
+  return {
+    recordCuenta: usuario.user_metadata?.record_quiz ?? 0,
+    guardar: (record) => {
+      if (record <= (estado.sesion?.user?.user_metadata?.record_quiz ?? 0)) return;
+      estado.cliente.auth.updateUser({ data: { record_quiz: record } }).catch(() => {});
+    },
+  };
+}
+
 function fase(nombre, porcentaje, texto) {
   $("progreso").textContent = texto;
   $("barra-progreso").setAttribute("aria-valuenow", String(porcentaje));
@@ -431,7 +444,7 @@ async function crear(mascota) {
   $("lista").hidden = true;
   $("fallo").hidden = true;
   fase("escribir", 15, `Escribiendo la historia de ${mascota.nombre}…`);
-  empezarQuiz();
+  empezarQuiz(opcionesQuiz());
   try {
     const respuesta = await api("/api/historia", { method: "POST", body: JSON.stringify(mascota) });
     const datos = await respuesta.json();
@@ -550,7 +563,7 @@ async function irAPagina(pagina, seguirLeyendo) {
   $("lista").hidden = true;
   $("fallo").hidden = true;
   fase("pintar", 70, `Pintando la página ${pagina + 1}…`);
-  empezarQuiz();
+  empezarQuiz(opcionesQuiz());
   await Promise.race([asegurarFondo(actual, pagina), esperar(ESPERA_MAXIMA)]);
   if (estado.vista !== "cargando" || estado.actual !== actual) return;
   if (!paginaLista(actual, pagina)) {

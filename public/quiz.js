@@ -112,12 +112,36 @@ const ICONOS = {
   mal: '<svg viewBox="0 0 24 24" role="img" aria-label="Su respuesta, incorrecta"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>',
 };
 
+const RECORD = "mascotadas.record";
+
 let cola = [];
-let aciertos = 0;
+let racha = 0; // Aciertos seguidos en esta espera: un fallo la devuelve a cero.
 let respondidas = 0;
+let record = leerRecord();
+let recordAlEmpezar = record; // Se celebra una sola vez: al superar el récord que había al empezar la espera.
+let alGuardarRecord = null; // La app lo guarda también en la cuenta, para verlo en cualquier dispositivo.
+
+// El récord se guarda en este navegador y, con sesión, en la cuenta.
+function leerRecord() {
+  try {
+    return Number(localStorage.getItem(RECORD)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function guardarRecord() {
+  try {
+    localStorage.setItem(RECORD, String(record));
+  } catch {
+    // Sin almacenamiento, el récord dura solo esta visita.
+  }
+  alGuardarRecord?.(record);
+}
 
 function pintarPuntos() {
-  $("quiz-puntos").textContent = `${aciertos} ${aciertos === 1 ? "acierto" : "aciertos"}`;
+  $("quiz-puntos").textContent = `${racha} ${racha === 1 ? "seguido" : "seguidos"}`;
+  $("quiz-record").textContent = record;
   $("quiz-cabecera").textContent = `QUIZ · PREGUNTA ${respondidas + ($("quiz-respuesta").hidden ? 1 : 0)}`;
 }
 
@@ -150,7 +174,13 @@ function siguiente() {
 function responder(boton, letraCorrecta, dato) {
   const bien = boton.dataset.correcta === "true";
   respondidas++;
-  if (bien) aciertos++;
+  racha = bien ? racha + 1 : 0;
+  if (racha > record) {
+    record = racha;
+    guardarRecord();
+  }
+  const nuevoRecord = bien && recordAlEmpezar > 0 && racha === recordAlEmpezar + 1;
+  $("quiz-racha-caja").classList.toggle("record-nuevo", bien && recordAlEmpezar > 0 && racha > recordAlEmpezar);
   for (const otro of $("quiz-opciones").children) {
     otro.disabled = true;
     if (otro.dataset.correcta === "true") {
@@ -162,16 +192,24 @@ function responder(boton, letraCorrecta, dato) {
     boton.classList.add("mal");
     boton.insertAdjacentHTML("beforeend", ICONOS.mal);
   }
-  $("quiz-veredicto").textContent = bien ? "¡Correcto!" : `¡Casi! Era la ${letraCorrecta}.`;
+  $("quiz-veredicto").textContent = nuevoRecord
+    ? `¡Correcto! ¡Nuevo récord: ${racha} seguidos! Siga, a ver hasta dónde llega.`
+    : bien ? "¡Correcto!" : `¡Casi! Era la ${letraCorrecta}.`;
   $("quiz-dato").textContent = dato;
   $("quiz-respuesta").hidden = false;
   pintarPuntos();
   $("quiz-siguiente").focus();
 }
 
-export function empezarQuiz() {
-  aciertos = 0;
+// recordCuenta: el récord guardado en la cuenta; se queda el mayor entre ese y el de este navegador.
+export function empezarQuiz({ recordCuenta = 0, guardar = null } = {}) {
+  racha = 0;
   respondidas = 0;
+  alGuardarRecord = guardar;
+  record = Math.max(leerRecord(), Number(recordCuenta) || 0);
+  if (guardar && record > (Number(recordCuenta) || 0)) guardar(record); // Sube a la cuenta un récord conseguido antes de entrar.
+  recordAlEmpezar = record;
+  $("quiz-racha-caja").classList.remove("record-nuevo");
   siguiente();
 }
 

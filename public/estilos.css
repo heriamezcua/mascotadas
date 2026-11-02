@@ -320,6 +320,9 @@ legend { padding: 0; }
 .quiz { gap: 16px; }
 .quiz-cabecera { font-size: 16px; font-weight: 900; color: var(--morado); letter-spacing: .4px; }
 .quiz-pregunta { font-size: 26px; line-height: 1.15; }
+.quiz-record { margin-top: -8px; font-size: 15px; font-weight: 800; color: var(--suave); }
+.quiz-record strong { color: var(--tinta); }
+.record-nuevo { animation: estallido .5s cubic-bezier(.3, 1.6, .5, 1) both; background: var(--menta); }
 .quiz-opciones { display: flex; flex-direction: column; gap: 12px; }
 .opcion {
   width: 100%; min-height: 60px; text-align: left; font: 800 19px/1.2 var(--texto); color: var(--tinta); background: #fff;
