@@ -21,6 +21,9 @@ create table public.historias (
   creado timestamptz not null default now()
 );
 
+-- Enlace público de las historias que su dueño decide compartir.
+alter table public.historias add column if not exists compartida text unique;
+
 create index historias_usuario_creado on public.historias (usuario, creado desc);
 
 alter table public.perfiles enable row level security;

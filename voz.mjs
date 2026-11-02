@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { guardarAudio, leerAudio } from "./datos.mjs";
+import { audiosDe, guardarAudio, leerAudio } from "./datos.mjs";
 
 // Voces de la biblioteca de ElevenLabs que se pueden elegir al escuchar.
 export const VOCES = {
@@ -13,6 +13,16 @@ const MODELO = process.env.MASCOTADAS_MODELO_VOZ || "eleven_v4";
 export function hayVoz() {
   return Boolean(process.env.ELEVENLABS_API_KEY);
 }
+
+const huellaDe = (texto, voz) => createHash("sha256").update(`${VOCES[voz] ?? VOCES["espana-hombre"]}|${MODELO}|${texto}`).digest("hex");
+
+// Para los visitantes de una historia compartida: solo audios ya pagados, nunca se genera nada nuevo.
+export async function vocesGuardadas(usuario, textos) {
+  const guardados = await audiosDe(usuario);
+  return textos.map((texto) => Object.keys(VOCES).filter((voz) => guardados.has(`${huellaDe(texto, voz)}.mp3`)));
+}
+
+export const audioGuardado = (usuario, texto, voz) => (VOCES[voz] ? leerAudio(usuario, huellaDe(texto, voz)) : null);
 
 // Cada texto se paga una vez: releer una historia sale del almacén.
 // Si no está guardado, devuelve el audio en streaming según lo genera ElevenLabs, para que empiece a sonar en un segundo.

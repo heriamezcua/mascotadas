@@ -46,8 +46,9 @@ export function claveFicha(mascota) {
   return createHash("sha256").update(rasgos).digest("hex").slice(0, 24);
 }
 
-const SATURADO = [429, 500, 503];
-const PAUSAS = [8000, 20000];
+const SATURADO = [429, 500, 503, 504];
+const PAUSAS = [5000, 15000, 30000];
+const LIMITE = 120000; // Una petición colgada no debe bloquear la página: se corta y se reintenta.
 
 // Google a veces está saturado unos segundos: se reintenta antes de dar la página por perdida.
 async function pintar(input) {
@@ -55,7 +56,7 @@ async function pintar(input) {
     try {
       return await pintarUnaVez(input);
     } catch (error) {
-      if (!SATURADO.includes(error.status) || intento >= PAUSAS.length) throw error;
+      if (!SATURADO.includes(error.status ?? 504) || intento >= PAUSAS.length) throw error;
       await new Promise((listo) => setTimeout(listo, PAUSAS[intento]));
     }
   }
@@ -63,11 +64,14 @@ async function pintar(input) {
 
 async function pintarUnaVez(input) {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  const respuesta = await ai.interactions.create({
-    model: MODELO,
-    input,
-    response_format: { type: "image", mime_type: "image/jpeg", aspect_ratio: "16:9", image_size: "1K" },
-  });
+  const respuesta = await Promise.race([
+    ai.interactions.create({
+      model: MODELO,
+      input,
+      response_format: { type: "image", mime_type: "image/jpeg", aspect_ratio: "16:9", image_size: "1K" },
+    }),
+    new Promise((_, falla) => setTimeout(() => falla(Object.assign(new Error("Sin respuesta de la IA"), { status: 504 })), LIMITE)),
+  ]);
   const imagen = respuesta.output_image;
   if (!imagen?.data) throw new Error("La IA no ha devuelto la imagen");
   return Buffer.from(imagen.data, "base64");

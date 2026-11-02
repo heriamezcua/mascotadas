@@ -9,7 +9,7 @@
   <meta property="og:description" content="Su mascota, protagonista de su propio cuento ilustrado y narrado.">
   <meta property="og:type" content="website">
   <link rel="canonical" href="https://mascotadas.com/">
-  <link rel="icon" href="icono.svg" type="image/svg+xml">
+  <link rel="icon" href="icono.svg?v=2" type="image/svg+xml">
   <link rel="preload" href="fuentes/baloo-2-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fuentes/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="estilos.css">
@@ -37,6 +37,7 @@
       <symbol id="i-libro" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5C5.5 4 8.5 4 12 6c3.5-2 6.5-2 9-.5v13c-2.5-1.5-5.5-1.5-9 .5-3.5-2-6.5-2-9-.5z"/><path d="M12 6v13"/></g></symbol>
       <symbol id="i-pincel" viewBox="0 0 32 32"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4l8 8-10 10-8-8z" fill="#B69CFF"/><path d="M10 14c-4 0-6 3-6 6 0 4-1 6-1 6s7 1 10-2c2-2 2-5 0-7"/></g></symbol>
       <symbol id="i-alerta" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#C62F24"/><path d="M12 7v6M12 16.5v.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></symbol>
+      <symbol id="i-compartir" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></g></symbol>
       <symbol id="i-sin-voz" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l4 6M21 9l-4 6"/></g></symbol>
     </defs>
   </svg>
@@ -324,7 +325,7 @@
 
       <fieldset class="pregunta">
         <legend class="q d"><span class="n">7</span>¿Lleva collar o lazo?</legend>
-        <div id="collares" class="rejilla-5"></div>
+        <div id="collares" class="rejilla-6"></div>
       </fieldset>
 
       <div class="barra-enviar">
@@ -362,7 +363,7 @@
       <h1 id="lista-titulo" class="d">¡La historia está lista!</h1>
       <button type="button" id="abrir-lista" class="btn btn-platano btn-xxl ancho-total">
         <svg width="26" height="26" aria-hidden="true"><use href="#i-libro"/></svg>
-        Abrir
+        <span id="abrir-texto">Abrir</span>
       </button>
     </section>
 
@@ -423,6 +424,15 @@
             </button>
             <button type="button" id="fin" class="btn-nav btn-nav-fin" data-volver hidden>Fin</button>
           </nav>
+          <section id="compartir-caja" class="caja compartir" hidden>
+            <h2 class="d">¿Os ha gustado?</h2>
+            <p class="texto-suave">Compártala en Instagram Stories para que sus amigos puedan leerla.</p>
+            <button type="button" id="compartir" class="btn btn-p ancho-total">
+              <svg width="22" height="22" aria-hidden="true"><use href="#i-compartir"/></svg>
+              <span>Compartir en Stories</span>
+            </button>
+            <p id="compartida-nota" class="texto-suave pequeno" hidden>Esta historia tiene un enlace público. <button type="button" class="enlace" data-dejar-compartir>Dejar de compartir</button></p>
+          </section>
         </div>
       </div>
     </div>
@@ -472,7 +482,7 @@
         <a href="/condiciones">Términos y condiciones</a>
         <a href="/cookies">Cookies</a>
       </nav>
-      <p class="pie-nota">© 2026 Mascotadas · Historias de ficción creadas con inteligencia artificial</p>
+      <p class="pie-nota">© 2026 Mascotadas</p>
     </div>
   </footer>
 
@@ -563,6 +573,21 @@
       <span class="texto-suave pequeno">Borra mascotas, historias y email</span>
       <button type="button" id="borrar" class="enlace enlace-peligro">Borrar cuenta</button>
     </div>
+  </dialog>
+
+  <dialog id="ventana-compartir" class="ventana" aria-labelledby="compartir-titulo">
+    <button type="button" class="cerrar" data-cerrar aria-label="Cerrar"><svg width="24" height="24" aria-hidden="true"><use href="#i-cruz"/></svg></button>
+    <h2 id="compartir-titulo" class="d">Compartir en Stories</h2>
+    <img id="vista-story" class="vista-story" alt="Imagen para Instagram Stories con la portada de la historia">
+    <ol class="pasos-compartir">
+      <li>Pulse <strong>Compartir imagen</strong> y elija <strong>Instagram → Historia</strong>.</li>
+      <li>En Instagram, toque el sticker <strong>Enlace</strong> y pegue el enlace: ya lo tiene copiado.</li>
+    </ol>
+    <p id="compartir-aviso" class="aviso-ok" role="status" hidden></p>
+    <button type="button" id="compartir-ya" class="btn btn-p ancho-total">Compartir imagen</button>
+    <a id="descargar-story" class="btn btn-discreto ancho-total" download="mascotadas-historia.jpg">Descargar imagen</a>
+    <button type="button" id="copiar-enlace" class="btn btn-discreto ancho-total">Copiar enlace</button>
+    <p class="texto-suave pequeno">Cualquiera con el enlace podrá leer esta historia. <button type="button" class="enlace" data-dejar-compartir>Dejar de compartir</button></p>
   </dialog>
 
   <dialog id="confirmar-borrado" class="ventana" role="alertdialog" aria-labelledby="borrar-titulo" aria-describedby="borrar-texto">

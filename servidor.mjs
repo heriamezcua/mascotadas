@@ -9,8 +9,8 @@ const raiz = fileURLToPath(new URL(".", import.meta.url));
 if (existsSync(join(raiz, ".env.local"))) process.loadEnvFile(join(raiz, ".env.local"));
 
 const { escribirHistoria, hayIA } = await import("./historias.mjs");
-const { narrar, hayVoz } = await import("./voz.mjs");
-const { pintarFondos, hayImagenes, claveFicha, ESPECIES } = await import("./fondos.mjs");
+const { narrar, hayVoz, vocesGuardadas, audioGuardado } = await import("./voz.mjs");
+const { pintarFondos, pintarFicha, pintarEscena, hayImagenes, claveFicha, ESPECIES } = await import("./fondos.mjs");
 const datos = await import("./datos.mjs");
 const pagos = await import("./pagos.mjs");
 const { inicioDelPeriodo, restantes } = await import("./planes.mjs");
@@ -40,6 +40,47 @@ setInterval(() => {
 const generando = new Set(); // Impide saltarse el máximo pidiendo dos historias a la vez.
 
 // Si un fondo falla, se marca para que la página se quede con el escenario dibujado y no lo siga esperando.
+const REINTENTOS = [30000, 120000]; // Google se satura a ratos: las páginas que fallan se vuelven a pintar más tarde.
+const repintando = new Map(); // Evita pintar dos veces la misma página a la vez.
+
+async function fichaDe(usuario, mascota) {
+  const clave = claveFicha(mascota);
+  let ficha = await datos.leerFicha(usuario, clave);
+  if (!ficha) {
+    ficha = await pintarFicha(mascota);
+    await datos.guardarFicha(usuario, clave, ficha);
+  }
+  return ficha;
+}
+
+// Marca en la historia guardada qué páginas tienen imagen, releyéndola para no pisar otros cambios.
+async function marcarPaginas(usuario, id, cambios) {
+  const actual = await datos.leerHistoria(id, usuario);
+  if (!actual) return;
+  const paginas = actual.paginas.map((pagina, i) => (i in cambios ? { ...pagina, imagen: cambios[i] } : pagina));
+  await datos.actualizarHistoria(id, usuario, { paginas });
+}
+
+function repintarPagina(usuario, historia, i) {
+  const clave = `${historia.id}-${i}`;
+  if (!repintando.has(clave)) {
+    repintando.set(clave, (async () => {
+      try {
+        const imagen = await pintarEscena(historia.paginas[i], historia.mascota, await fichaDe(usuario, historia.mascota));
+        await datos.guardarFondo(usuario, historia.id, i, imagen);
+        await marcarPaginas(usuario, historia.id, { [i]: "escena" });
+        return true;
+      } catch (error) {
+        console.error(`Fondo ${i} (reintento):`, error.message);
+        return false;
+      } finally {
+        repintando.delete(clave);
+      }
+    })());
+  }
+  return repintando.get(clave);
+}
+
 async function pintarEnSegundoPlano(usuario, historia) {
   try {
     const clave = claveFicha(historia.mascota);
@@ -48,9 +89,15 @@ async function pintarEnSegundoPlano(usuario, historia) {
       guardarFicha: (imagen) => datos.guardarFicha(usuario, clave, imagen),
       guardar: (i, imagen) => datos.guardarFondo(usuario, historia.id, i, imagen),
     });
-    if (pintadas.every(Boolean)) return;
-    const paginas = historia.paginas.map((pagina, i) => ({ ...pagina, imagen: pintadas[i] }));
-    await datos.actualizarHistoria(historia.id, usuario, { paginas });
+    let pendientes = pintadas.flatMap((bien, i) => (bien || !historia.paginas[i].fondo ? [] : [i]));
+    for (const pausa of REINTENTOS) {
+      if (pendientes.length === 0) return;
+      await new Promise((listo) => setTimeout(listo, pausa));
+      const resultados = await Promise.all(pendientes.map((i) => repintarPagina(usuario, historia, i)));
+      pendientes = pendientes.filter((_, n) => !resultados[n]);
+    }
+    // Si Google sigue sin responder, la página se pintará cuando alguien llegue a ella.
+    if (pendientes.length) await marcarPaginas(usuario, historia.id, Object.fromEntries(pendientes.map((i) => [i, false])));
   } catch (error) {
     console.error("Fondos:", error.message);
   }
@@ -125,6 +172,19 @@ const rutas = {
     }
   },
 
+  // Pinta en el momento una página que falló, mientras quien lee espera con el quiz.
+  "POST /api/repintar": async (req, res, usuario) => {
+    const { historia: id, pagina } = await leerCuerpo(req);
+    const historia = await datos.leerHistoria(id, usuario.id);
+    if (!historia?.paginas[pagina]?.fondo || !hayImagenes()) return responder(res, 404, { error: "No existe" });
+    if (await datos.leerFondo(usuario.id, id, pagina)) {
+      if (historia.paginas[pagina].imagen !== "escena") await marcarPaginas(usuario.id, id, { [pagina]: "escena" });
+      return responder(res, 200, { ok: true });
+    }
+    const bien = await repintarPagina(usuario.id, historia, pagina);
+    responder(res, bien ? 200 : 503, bien ? { ok: true } : { error: "Ahora mismo no podemos pintarla. Inténtelo en un momento." });
+  },
+
   "GET /api/fondo": async (req, res, usuario) => {
     const consulta = new URL(req.url, "http://localhost").searchParams;
     const historia = consulta.get("historia") ?? "";
@@ -185,6 +245,51 @@ const rutas = {
     return url ? responder(res, 200, { url }) : responder(res, 404, { error: "Sin suscripción" });
   },
 
+  // Compartir: solo el dueño crea o quita el enlace público de su historia.
+  "POST /api/compartir": async (req, res, usuario) => {
+    const { historia } = await leerCuerpo(req);
+    const enlace = await datos.compartirHistoria(historia, usuario.id);
+    if (!enlace) return responder(res, 404, { error: "No existe" });
+    responder(res, 200, { enlace });
+  },
+
+  "DELETE /api/compartir": async (req, res, usuario) => {
+    const { historia } = await leerCuerpo(req);
+    await datos.dejarDeCompartir(historia, usuario.id);
+    responder(res, 200, { ok: true });
+  },
+
+  // Lo que ve un visitante de una historia compartida: sin datos del dueño.
+  "GET /api/publica": async (req, res) => {
+    const historia = await compartidaDe(req);
+    if (!historia) return responder(res, 404, { error: "No existe" });
+    const voces = hayVoz() ? await vocesGuardadas(historia.usuario, historia.paginas.map((p) => p.texto)) : [];
+    responder(res, 200, {
+      titulo: historia.titulo,
+      mascota: { nombre: historia.mascota.nombre, especie: historia.mascota.especie },
+      paginas: historia.paginas.map((p, i) => ({ texto: p.texto, imagen: Boolean(p.imagen), voces: voces[i] ?? [] })),
+    });
+  },
+
+  "GET /api/publica/fondo": async (req, res) => {
+    const historia = await compartidaDe(req);
+    const pagina = paginaDe(req, historia);
+    const imagen = pagina === null ? null : await datos.leerFondo(historia.usuario, historia.id, pagina);
+    if (!imagen) return responder(res, 404, { error: "No existe" });
+    res.writeHead(200, { "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=86400", ...CABECERAS });
+    res.end(imagen);
+  },
+
+  "GET /api/publica/voz": async (req, res) => {
+    const historia = await compartidaDe(req);
+    const pagina = paginaDe(req, historia);
+    const voz = new URL(req.url, "http://localhost").searchParams.get("voz");
+    const audio = pagina === null ? null : await audioGuardado(historia.usuario, historia.paginas[pagina].texto, voz);
+    if (!audio) return responder(res, 404, { error: "No existe" });
+    res.writeHead(200, { "Content-Type": "audio/mpeg", "Content-Length": audio.length, "Cache-Control": "public, max-age=86400", ...CABECERAS });
+    res.end(audio);
+  },
+
   "DELETE /api/cuenta": async (req, res, usuario) => {
     await pagos.cancelarSuscripcion(usuario);
     await datos.borrarUsuario(usuario.id);
@@ -192,7 +297,33 @@ const rutas = {
   },
 };
 
-const PUBLICAS = new Set(["GET /api/estado", "GET /api/escuchar"]); // Escuchar se autoriza con su pase.
+// Escuchar se autoriza con su pase; las de una historia compartida, con su enlace.
+const PUBLICAS = new Set(["GET /api/estado", "GET /api/escuchar", "GET /api/publica", "GET /api/publica/fondo", "GET /api/publica/voz"]);
+const ENLACE = /^[A-Za-z0-9_-]{8,24}$/;
+
+async function compartidaDe(req) {
+  const enlace = new URL(req.url, "http://localhost").searchParams.get("e") ?? "";
+  return ENLACE.test(enlace) ? datos.leerCompartida(enlace) : null;
+}
+
+function paginaDe(req, historia) {
+  const pagina = Number(new URL(req.url, "http://localhost").searchParams.get("pagina"));
+  return historia && Number.isInteger(pagina) && historia.paginas[pagina] ? pagina : null;
+}
+
+const escaparHtml = (texto) => String(texto).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+// La página pública lleva el título y la portada de la historia para que el enlace se vea bonito al compartirlo.
+async function servirCompartida(res, enlace) {
+  const historia = ENLACE.test(enlace) ? await datos.leerCompartida(enlace).catch(() => null) : null;
+  let html = await readFile(join(raiz, "public", "historia.html"), "utf8");
+  const titulo = historia ? `${historia.titulo} · Mascotadas` : "Historia no disponible · Mascotadas";
+  html = html
+    .replaceAll("{{titulo}}", escaparHtml(titulo))
+    .replaceAll("{{imagen}}", historia ? `https://mascotadas.com/api/publica/fondo?e=${enlace}&amp;pagina=0` : "https://mascotadas.com/img/ejemplo.jpg");
+  res.writeHead(historia ? 200 : 404, { "Content-Type": TIPOS[".html"], ...CABECERAS });
+  res.end(html);
+}
 
 async function atenderApi(req, res, ruta) {
   if (ruta === "/api/stripe") {
@@ -221,6 +352,7 @@ async function atenderApi(req, res, ruta) {
 createServer(async (req, res) => {
   const ruta = new URL(req.url, "http://localhost").pathname;
   if (ruta.startsWith("/api/")) return atenderApi(req, res, ruta);
+  if (ruta.startsWith("/h/")) return servirCompartida(res, ruta.slice(3));
 
   const relativa = normalize(ruta === "/" ? "index.html" : ruta.slice(1));
   if (relativa.startsWith("..")) return responder(res, 404, { error: "No existe" });

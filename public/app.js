@@ -36,7 +36,7 @@ const COLORES = [
   ["#c98a4f", "Canela"], ["#2e2a2a", "Negro"], ["#efe6da", "Blanco"], ["#8d8d99", "Gris"], ["#e08a3c", "Naranja"],
   ["#7a5230", "Marrón"], ["#5fae4e", "Verde"], ["#4a90d9", "Azul"], ["#f2c94c", "Amarillo"],
 ];
-const COLLARES = [["#d9503f", "Rojo"], ["#3f7fd9", "Azul"], ["#3fa37a", "Verde"], ["#e8a42c", "Amarillo"], ["ninguno", "Ninguno"]];
+const COLLARES = [["#d9503f", "Rojo"], ["#3f7fd9", "Azul"], ["#3fa37a", "Verde"], ["#e8a42c", "Amarillo"], ["#2b2b2b", "Negro"], ["ninguno", "Ninguno"]];
 const RASGOS = ["nombre", "especie", "personalidad", "mania", "color", "collar"];
 const LIMITES = { prueba: 3, basico: 8, premium: 1 };
 const NOMBRES_PLAN = { prueba: "Prueba gratis", basico: "Mensual", premium: "Premium" };
@@ -56,6 +56,7 @@ const estado = {
 /* ---------- Fondos pintados por IA ---------- */
 
 const fondos = new Map(); // Cada fondo se descarga una vez por visita.
+const listos = new Map(); // Los fondos que ya han terminado de cargar (o de fallar).
 
 // Un fondo recién pedido puede tardar unos minutos en pintarse: mientras no exista, se vuelve a preguntar.
 function cargarFondo(historia, pagina) {
@@ -64,22 +65,60 @@ function cargarFondo(historia, pagina) {
     fondos.set(clave, (async () => {
       for (let intento = 0; intento < 72; intento++) {
         const r = await api(`/api/fondo?historia=${historia}&pagina=${pagina}`).catch(() => null);
-        if (r?.ok) return URL.createObjectURL(await r.blob());
+        if (r?.ok) {
+          const url = URL.createObjectURL(await r.blob());
+          listos.set(clave, url);
+          return url;
+        }
         if (r && r.status !== 404) break;
         await esperar(5000);
       }
       fondos.delete(clave);
+      listos.set(clave, null);
       return null;
     })());
   }
   return fondos.get(clave);
 }
 
+// Las páginas con descripción de escena se pintan con IA; solo las historias antiguas, sin ella, usan el dibujo.
+const conIA = (historia, i) => Boolean(historia.paginas[i]?.fondo || historia.paginas[i]?.imagen);
+const paginaLista = (historia, i) => !conIA(historia, i) || Boolean(listos.get(`${historia.id}-${i}`));
+
+// Las historias con imágenes de IA nunca enseñan el dibujo de reserva: un hueco que brilla hasta que llega la imagen.
+const ESCENA_VACIA = '<svg class="escena" viewBox="0 0 800 500" role="img" aria-label="Ilustración de la historia" xmlns="http://www.w3.org/2000/svg"><g class="capa-fondo"></g></svg>';
+const escenaDe = (historia, i) => (conIA(historia, i) ? ESCENA_VACIA : ilustrar(historia.paginas[i], historia.mascota));
+
+const repintados = new Map(); // Páginas que se están volviendo a pintar ahora mismo.
+
+// Una página cuyo pintado falló se vuelve a pintar al necesitarla; las demás solo se descargan.
+function asegurarFondo(historia, i) {
+  const pagina = historia.paginas[i];
+  const clave = `${historia.id}-${i}`;
+  if (pagina?.imagen !== false || !pagina.fondo) return cargarFondo(historia.id, i);
+  if (!repintados.has(clave)) {
+    repintados.set(clave, (async () => {
+      const respuesta = await api("/api/repintar", { method: "POST", body: JSON.stringify({ historia: historia.id, pagina: i }) }).catch(() => null);
+      repintados.delete(clave);
+      if (!respuesta?.ok) return null;
+      pagina.imagen = "escena";
+      fondos.delete(clave);
+      listos.delete(clave);
+      return cargarFondo(historia.id, i);
+    })());
+  }
+  return repintados.get(clave);
+}
+
 async function pintarFondo(contenedor, historia, pagina) {
-  if (!historia.paginas[pagina]?.imagen) return;
+  if (!conIA(historia, pagina)) return;
   const escena = contenedor.querySelector(".escena");
-  const url = await cargarFondo(historia.id, pagina);
-  if (url && escena.isConnected) ponerFondo(escena, url, historia.paginas[pagina].imagen === "escena"); // Si ya se ha pasado de página, no se toca la nueva.
+  contenedor.classList.add("esperando-imagen");
+  const url = await asegurarFondo(historia, pagina);
+  if (!escena.isConnected) return; // Si ya se ha pasado de página, no se toca la nueva.
+  contenedor.classList.remove("esperando-imagen");
+  if (url) ponerFondo(escena, url, historia.paginas[pagina].imagen !== true); // true: historias antiguas con la mascota dibujada encima.
+  else contenedor.classList.add("sin-imagen");
 }
 
 /* ---------- Utilidades ---------- */
@@ -197,6 +236,15 @@ function pintarSaldo() {
   $("saldo-plan").textContent = `Plan ${NOMBRES_PLAN[plan]} ·`;
 }
 
+// Las miniaturas cargan su imagen solo al aparecer en pantalla; luego sirve también al abrir la historia.
+const miniaturasVisibles = new IntersectionObserver((entradas) => {
+  for (const { isIntersecting, target } of entradas) {
+    if (!isIntersecting) continue;
+    miniaturasVisibles.unobserve(target);
+    pintarFondo(target, target.historia, 0);
+  }
+}, { rootMargin: "200px" });
+
 function pintarHistorias(historias) {
   $("num-historias").textContent = historias.length === 1 ? "1 historia" : `${historias.length} historias`;
   $("num-historias").hidden = historias.length === 0;
@@ -207,10 +255,14 @@ function pintarHistorias(historias) {
     const boton = document.createElement("button");
     boton.type = "button";
     boton.className = "historia";
-    boton.innerHTML = `<span class="miniatura" aria-hidden="true" style="background:${tono[2]}">${tono[3]}</span>
+    boton.innerHTML = `<span class="miniatura${historia.paginas[0]?.imagen ? " esperando-imagen" : ""}" aria-hidden="true">${escenaDe(historia, 0)}</span>
       <span class="historia-texto"><span class="historia-titulo">${escapar(historia.titulo)}</span>
       <span class="historia-meta">${escapar(historia.mascota.nombre)} · ${tono[1]} · ${cuandoFue(historia.creado)}</span></span>`;
     boton.addEventListener("click", () => abrir(historia));
+    const miniatura = boton.querySelector(".miniatura");
+    miniatura.querySelector(".escena").setAttribute("preserveAspectRatio", "xMidYMid slice"); // Recorta en vez de dejar franjas.
+    miniatura.historia = historia;
+    if (historia.paginas[0]?.imagen) miniaturasVisibles.observe(miniatura);
     li.append(boton);
     return li;
   }));
@@ -348,6 +400,7 @@ async function esperarFondos(historia) {
 
 async function crear(mascota) {
   estado.ultimaPeticion = mascota;
+  estado.reintentar = () => crear(mascota);
   mostrar("cargando");
   $("progreso-caja").hidden = false;
   $("lista").hidden = true;
@@ -369,6 +422,7 @@ async function crear(mascota) {
     fase("lista", 100, "¡Ya está!");
     $("progreso-caja").hidden = true;
     $("lista-titulo").textContent = `¡La historia de ${mascota.nombre} está lista!`;
+    $("abrir-texto").textContent = "Abrir";
     $("abrir-lista").onclick = () => abrir(datos);
     $("lista").hidden = false;
     $("abrir-lista").focus();
@@ -414,7 +468,8 @@ function pintarPagina() {
   const { actual, pagina } = estado;
   const datos = actual.paginas[pagina];
   const total = actual.paginas.length;
-  $("pagina").innerHTML = ilustrar(datos, actual.mascota);
+  $("pagina").className = "pagina-libro";
+  $("pagina").innerHTML = escenaDe(actual, pagina);
   $("texto-pagina").textContent = datos.texto;
   $("texto-pagina").style.animation = "none";
   void $("texto-pagina").offsetWidth; // Reinicia la animación de entrada del texto.
@@ -430,6 +485,8 @@ function pintarPagina() {
   $("anterior").disabled = pagina === 0;
   $("siguiente").hidden = pagina === total - 1;
   $("fin").hidden = pagina !== total - 1;
+  $("compartir-caja").hidden = pagina !== total - 1;
+  $("compartida-nota").hidden = !actual.compartida;
 }
 
 function abrir(historia) {
@@ -446,6 +503,49 @@ function abrir(historia) {
 function irA(pagina) {
   estado.pagina = pagina;
   pintarPagina();
+}
+
+// Si la página aún no está pintada, se espera con el quiz en vez de enseñarla a medias.
+async function irAPagina(pagina, seguirLeyendo) {
+  const { actual } = estado;
+  if (!paginaLista(actual, pagina)) {
+    await Promise.race([asegurarFondo(actual, pagina), esperar(1500)]); // Lo que tarda en descargarse no merece la espera.
+  }
+  if (estado.actual !== actual) return;
+  if (paginaLista(actual, pagina)) {
+    irA(pagina);
+    if (seguirLeyendo) {
+      estado.leyendo = true;
+      leerPagina();
+    }
+    return;
+  }
+  mostrar("cargando");
+  $("progreso-caja").hidden = false;
+  $("lista").hidden = true;
+  $("fallo").hidden = true;
+  fase("pintar", 70, `Pintando la página ${pagina + 1}…`);
+  empezarQuiz();
+  await Promise.race([asegurarFondo(actual, pagina), esperar(ESPERA_MAXIMA)]);
+  if (estado.vista !== "cargando" || estado.actual !== actual) return;
+  if (!paginaLista(actual, pagina)) {
+    $("progreso-caja").hidden = true;
+    $("fallo-texto").textContent = `No hemos podido pintar la página ${pagina + 1}: el servicio de dibujo está saturado. Inténtelo en un momento.`;
+    estado.reintentar = () => irAPagina(pagina, seguirLeyendo);
+    $("fallo").hidden = false;
+    return;
+  }
+  fase("lista", 100, "¡Ya está!");
+  $("progreso-caja").hidden = true;
+  $("lista-titulo").textContent = `¡La página ${pagina + 1} está lista!`;
+  $("abrir-texto").textContent = "Seguir leyendo";
+  $("abrir-lista").onclick = () => {
+    mostrar("libro");
+    irA(pagina);
+    if (seguirLeyendo) escuchar();
+  };
+  $("lista").hidden = false;
+  $("abrir-lista").focus();
 }
 
 // Estados de la barra de audio: parado, cargando, sonando o en pausa.
@@ -502,8 +602,7 @@ async function leerPagina() {
   audio.onended = () => {
     if (!estado.leyendo) return;
     if (estado.pagina < estado.actual.paginas.length - 1) {
-      irA(estado.pagina + 1);
-      leerPagina();
+      irAPagina(estado.pagina + 1, true);
     } else {
       parar();
     }
@@ -523,6 +622,211 @@ function escuchar() {
   } else {
     leerPagina();
   }
+}
+
+/* ---------- Compartir en Stories ---------- */
+
+const enlacePublico = (historia) => `${location.origin}/h/${historia.compartida}`;
+
+function cargarImagen(src) {
+  return new Promise((listo) => {
+    const img = new Image();
+    img.onload = () => listo(img);
+    img.onerror = () => listo(null);
+    img.src = src;
+  });
+}
+
+// Corta el texto en líneas que quepan en el ancho; si sobran, la última acaba en «…».
+function lineas(ctx, texto, ancho, maximo) {
+  const resultado = [];
+  let linea = "";
+  for (const palabra of texto.split(/\s+/)) {
+    const prueba = linea ? `${linea} ${palabra}` : palabra;
+    if (ctx.measureText(prueba).width <= ancho || !linea) {
+      linea = prueba;
+    } else {
+      resultado.push(linea);
+      linea = palabra;
+    }
+  }
+  if (linea) resultado.push(linea);
+  if (resultado.length > maximo) {
+    resultado.length = maximo;
+    resultado[maximo - 1] = resultado[maximo - 1].replace(/\s*\S*$/, "…");
+  }
+  return resultado;
+}
+
+function rectRedondo(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+}
+
+function dibujarLogo(ctx, x, y, escala) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(escala, escala);
+  ctx.fillStyle = "#FF8A2B";
+  ctx.strokeStyle = "#2B1840";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(22, 22, 19.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#2B1840";
+  for (const [cx, cy, rx, ry] of [[22, 27.5, 7.5, 6], [12.5, 19, 3, 3.9], [18, 13, 3, 3.9], [26, 13, 3, 3.9], [31.5, 19, 3, 3.9]]) {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// Imagen vertical de 1080 × 1920 con la portada, el título y mascotadas.com bien visible.
+async function crearImagenStory(historia) {
+  const TINTA = "#2B1840";
+  await Promise.all(['800 80px "Baloo 2"', '800 40px "Nunito"', '700 36px "Nunito"'].map((fuente) => document.fonts.load(fuente)));
+  const lienzo = document.createElement("canvas");
+  lienzo.width = 1080;
+  lienzo.height = 1920;
+  const ctx = lienzo.getContext("2d");
+
+  ctx.fillStyle = "#EAF6FF";
+  ctx.fillRect(0, 0, 1080, 1920);
+  ctx.fillStyle = "#B69CFF";
+  for (const [x, y, r] of [[90, 120, 26], [990, 260, 18], [70, 1500, 20], [1010, 1380, 28], [160, 1840, 14], [930, 1820, 22]]) {
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Logo y marca, centrados arriba.
+  ctx.font = '800 76px "Baloo 2"';
+  const anchoMarca = 106 + 24 + ctx.measureText("Mascotadas").width;
+  const mx = (1080 - anchoMarca) / 2;
+  dibujarLogo(ctx, mx, 143, 2.4);
+  ctx.fillStyle = TINTA;
+  ctx.textBaseline = "middle";
+  ctx.fillText("Mascotadas", mx + 130, 200);
+
+  // Tarjeta con la portada de la historia.
+  const titulo = lineas(ctx, historia.titulo, 860, 3);
+  const tx = 70, ty = 330, tw = 940, altoImagen = 528;
+  const alto = altoImagen + 110 + titulo.length * 84 + 80;
+  ctx.fillStyle = TINTA;
+  rectRedondo(ctx, tx + 18, ty + 22, tw, alto, 52);
+  ctx.fill();
+  ctx.fillStyle = "#fff";
+  rectRedondo(ctx, tx, ty, tw, alto, 52);
+  ctx.fill();
+  ctx.save();
+  rectRedondo(ctx, tx, ty, tw, alto, 52);
+  ctx.clip();
+  const url = historia.paginas[0]?.imagen ? await cargarFondo(historia.id, 0) : null;
+  const img = url ? await cargarImagen(url) : null;
+  if (img) {
+    const escala = Math.max(tw / img.width, altoImagen / img.height);
+    const w = img.width * escala, h = img.height * escala;
+    ctx.drawImage(img, tx + (tw - w) / 2, ty + (altoImagen - h) / 2, w, h);
+  } else {
+    ctx.fillStyle = "#B69CFF";
+    ctx.fillRect(tx, ty, tw, altoImagen);
+  }
+  ctx.restore();
+  ctx.strokeStyle = TINTA;
+  ctx.lineWidth = 10;
+  ctx.beginPath();
+  ctx.moveTo(tx, ty + altoImagen);
+  ctx.lineTo(tx + tw, ty + altoImagen);
+  ctx.stroke();
+  rectRedondo(ctx, tx, ty, tw, alto, 52);
+  ctx.stroke();
+
+  ctx.fillStyle = TINTA;
+  ctx.textBaseline = "alphabetic";
+  titulo.forEach((linea, i) => ctx.fillText(linea, tx + 40, ty + altoImagen + 110 + i * 84));
+  ctx.fillStyle = "#4A3A5E";
+  ctx.font = '800 40px "Nunito"';
+  ctx.fillText(`Protagonizada por ${historia.mascota.nombre}`, tx + 40, ty + altoImagen + 110 + titulo.length * 84 + 14);
+
+  // Llamada a leerla entera.
+  const py = Math.max(ty + alto + 140, 1540);
+  ctx.font = '800 60px "Baloo 2"';
+  const texto = "Léela en mascotadas.com";
+  const anchoPastilla = ctx.measureText(texto).width + 120;
+  const px = (1080 - anchoPastilla) / 2;
+  ctx.fillStyle = TINTA;
+  rectRedondo(ctx, px, py + 12, anchoPastilla, 130, 65);
+  ctx.fill();
+  ctx.fillStyle = "#FF8A2B";
+  rectRedondo(ctx, px, py, anchoPastilla, 130, 65);
+  ctx.fill();
+  ctx.lineWidth = 8;
+  ctx.stroke();
+  ctx.fillStyle = TINTA;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(texto, 540, py + 68);
+  ctx.font = '700 36px "Nunito"';
+  ctx.fillStyle = "#4A3A5E";
+  ctx.fillText("Toca el enlace para leer la historia completa", 540, py + 210);
+
+  return new Promise((listo) => lienzo.toBlob(listo, "image/jpeg", 0.9));
+}
+
+let story = null; // La imagen preparada: { archivo, url }.
+
+function avisoCompartir(texto) {
+  $("compartir-aviso").textContent = texto;
+  $("compartir-aviso").hidden = !texto;
+}
+
+async function copiarEnlace() {
+  try {
+    await navigator.clipboard.writeText(enlacePublico(estado.actual));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function prepararCompartir() {
+  const historia = estado.actual;
+  const boton = $("compartir");
+  boton.disabled = true;
+  boton.querySelector("span").textContent = "Preparando…";
+  try {
+    if (!historia.compartida) {
+      const respuesta = await api("/api/compartir", { method: "POST", body: JSON.stringify({ historia: historia.id }) });
+      if (!respuesta.ok) throw new Error("No se ha podido crear el enlace");
+      historia.compartida = (await respuesta.json()).enlace;
+    }
+    const imagen = await crearImagenStory(historia);
+    if (story) URL.revokeObjectURL(story.url);
+    story = { archivo: new File([imagen], "mascotadas-historia.jpg", { type: "image/jpeg" }), url: URL.createObjectURL(imagen) };
+    $("vista-story").src = story.url;
+    $("descargar-story").href = story.url;
+    $("compartir-ya").hidden = !navigator.canShare?.({ files: [story.archivo] });
+    avisoCompartir("");
+    $("compartida-nota").hidden = false;
+    $("ventana-compartir").showModal();
+  } catch (error) {
+    console.error(error);
+    alert("No hemos podido preparar la imagen. Inténtelo otra vez.");
+  } finally {
+    boton.disabled = false;
+    boton.querySelector("span").textContent = "Compartir en Stories";
+  }
+}
+
+async function dejarDeCompartir() {
+  const historia = estado.actual;
+  const respuesta = await api("/api/compartir", { method: "DELETE", body: JSON.stringify({ historia: historia.id }) }).catch(() => null);
+  if (!respuesta?.ok) return alert("No hemos podido dejar de compartirla. Inténtelo otra vez.");
+  historia.compartida = null;
+  $("compartida-nota").hidden = true;
+  if ($("ventana-compartir").open) $("ventana-compartir").close();
 }
 
 /* ---------- Ventanas ---------- */
@@ -640,7 +944,7 @@ $("formulario").addEventListener("submit", (evento) => {
   pedirHistoria(datos);
 });
 
-$("reintentar").addEventListener("click", () => estado.ultimaPeticion && crear(estado.ultimaPeticion));
+$("reintentar").addEventListener("click", () => estado.reintentar?.());
 
 $("formulario-acceso").addEventListener("submit", async (evento) => {
   evento.preventDefault();
@@ -695,6 +999,25 @@ $("pagar").addEventListener("click", async () => {
 });
 $("a-premium").addEventListener("click", abrirMuro);
 
+$("compartir").addEventListener("click", prepararCompartir);
+// El menú de compartir del móvil necesita un toque reciente: por eso va en su propio botón, ya con la imagen hecha.
+$("compartir-ya").addEventListener("click", async () => {
+  const copiado = copiarEnlace();
+  try {
+    await navigator.share({ files: [story.archivo] });
+    avisoCompartir((await copiado) ? "Enlace copiado: en Instagram, toque el sticker Enlace y péguelo." : "Recuerde añadir el enlace con el sticker Enlace.");
+  } catch (error) {
+    if (error.name !== "AbortError") avisoCompartir("No se ha podido abrir el menú de compartir. Descargue la imagen.");
+  }
+});
+$("descargar-story").addEventListener("click", async () => {
+  if (await copiarEnlace()) avisoCompartir("Imagen descargada y enlace copiado.");
+});
+$("copiar-enlace").addEventListener("click", async () => {
+  avisoCompartir((await copiarEnlace()) ? "Enlace copiado." : enlacePublico(estado.actual));
+});
+for (const boton of document.querySelectorAll("[data-dejar-compartir]")) boton.addEventListener("click", dejarDeCompartir);
+
 $("entrar").addEventListener("click", pedirAcceso);
 $("mi-cuenta").addEventListener("click", abrirCuenta);
 $("cuenta-premium").addEventListener("click", abrirMuro);
@@ -746,8 +1069,8 @@ const pintarEjemplo = () => {
 $("ejemplo-escuchar").addEventListener("click", () => (ejemplo.paused ? ejemplo.play() : ejemplo.pause()));
 for (const evento of ["play", "pause", "ended"]) ejemplo.addEventListener(evento, pintarEjemplo);
 
-$("anterior").addEventListener("click", () => { parar(); irA(estado.pagina - 1); });
-$("siguiente").addEventListener("click", () => { parar(); irA(estado.pagina + 1); });
+$("anterior").addEventListener("click", () => { parar(); irAPagina(estado.pagina - 1, false); });
+$("siguiente").addEventListener("click", () => { parar(); irAPagina(estado.pagina + 1, false); });
 
 try {
   const guardada = localStorage.getItem(VOZ);

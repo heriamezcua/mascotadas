@@ -15,6 +15,12 @@ Cada valor va como variable en Railway, nunca en el repositorio ni en el chat. L
 
 - [ ] Crear una clave de API y recargar saldo: `ANTHROPIC_API_KEY`.
 
+### Google Gemini (imágenes)
+
+- [x] Clave `GEMINI_API_KEY` con facturación activada.
+- [x] Saldo pagado, recarga automática activada y tope de gasto mensual puesto.
+- [ ] Revisar el tope de gasto cuando haya clientes (cada historia cuesta unos 0,20 € en imágenes).
+
 ### Supabase
 
 - [ ] Crear un proyecto en una región de la UE.

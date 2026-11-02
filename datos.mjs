@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
 // Sin Supabase configurado todo vive en memoria, con un único usuario: sirve para desarrollar y probar.
@@ -46,6 +46,25 @@ export async function leerHistoria(id, usuario) {
   return comprobar(await supabase.from("historias").select("*").eq("id", id).eq("usuario", usuario).maybeSingle());
 }
 
+// Compartir da a la historia un enlace público imposible de adivinar; dejar de compartir lo borra.
+export async function compartirHistoria(id, usuario) {
+  const historia = await leerHistoria(id, usuario);
+  if (!historia) return null;
+  if (historia.compartida) return historia.compartida;
+  const enlace = randomBytes(9).toString("base64url");
+  await actualizarHistoria(id, usuario, { compartida: enlace });
+  return enlace;
+}
+
+export async function dejarDeCompartir(id, usuario) {
+  await actualizarHistoria(id, usuario, { compartida: null });
+}
+
+export async function leerCompartida(enlace) {
+  if (local) return memoria.historias.find((c) => c.compartida === enlace) ?? null;
+  return comprobar(await supabase.from("historias").select("*").eq("compartida", enlace).maybeSingle());
+}
+
 export async function crearHistoria(usuario, historia) {
   if (local) {
     const fila = { id: randomUUID(), usuario, creado: new Date().toISOString(), ...historia };
@@ -86,6 +105,17 @@ async function guardarArchivo(cubo, ruta, contenido, tipo) {
 }
 
 export const leerAudio = (usuario, huella) => leerArchivo("audio", `${usuario}/${huella}.mp3`);
+
+// Nombres de los audios que ya tiene guardados un usuario, para saber qué se puede escuchar sin generar nada.
+export async function audiosDe(usuario) {
+  if (local) return new Set([...memoria.archivos.keys()].filter((k) => k.startsWith(`audio/${usuario}/`)).map((k) => k.split("/").pop()));
+  const nombres = new Set();
+  for (let desde = 0; ; desde += 1000) {
+    const lote = comprobar(await supabase.storage.from("audio").list(usuario, { limit: 1000, offset: desde }));
+    for (const archivo of lote) nombres.add(archivo.name);
+    if (lote.length < 1000) return nombres;
+  }
+}
 export const guardarAudio = (usuario, huella, audio) => guardarArchivo("audio", `${usuario}/${huella}.mp3`, audio, "audio/mpeg");
 export const leerFondo = (usuario, historia, pagina) => leerArchivo("fondos", `${usuario}/${historia}-${pagina}.jpg`);
 export const guardarFondo = (usuario, historia, pagina, imagen) =>

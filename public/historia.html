@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{titulo}}</title>
+  <meta name="robots" content="noindex">
+  <meta name="description" content="Una historia ilustrada y narrada protagonizada por una mascota. Crea la de la tuya en mascotadas.com.">
+  <meta property="og:title" content="{{titulo}}">
+  <meta property="og:description" content="Una historia ilustrada protagonizada por una mascota. ¿Qué hace la tuya cuando te vas de casa?">
+  <meta property="og:image" content="{{imagen}}">
+  <meta property="og:type" content="article">
+  <link rel="icon" href="/icono.svg?v=2" type="image/svg+xml">
+  <link rel="preload" href="/fuentes/baloo-2-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/estilos.css">
+</head>
+<body class="en-publica">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-logo" viewBox="0 0 44 44"><circle cx="22" cy="22" r="19.5" fill="#FF8A2B" stroke="currentColor" stroke-width="3"/><g fill="#2B1840"><ellipse cx="22" cy="27.5" rx="7.5" ry="6"/><ellipse cx="12.5" cy="19" rx="3" ry="3.9"/><ellipse cx="18" cy="13" rx="3" ry="3.9"/><ellipse cx="26" cy="13" rx="3" ry="3.9"/><ellipse cx="31.5" cy="19" rx="3" ry="3.9"/></g></symbol>
+      <symbol id="i-izq" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-der" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M7.5 4.5v15l12.5-7.5z" fill="currentColor"/></symbol>
+      <symbol id="i-pausa" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.5" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="currentColor"/></symbol>
+      <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-estrella" viewBox="0 0 24 24"><path d="M12 3l2.2 5.3L20 9l-4.4 3.8L17 18.5 12 15.6 7 18.5l1.4-5.7L4 9l5.8-.7z" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="cabecera">
+    <div class="cabecera-dentro">
+      <a class="marca" href="/" aria-label="Mascotadas, inicio">
+        <svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>
+        <span class="d">Mascotadas</span>
+      </a>
+      <a class="btn btn-sm btn-p" href="/">Probar gratis</a>
+    </div>
+  </header>
+
+  <main id="cargando-publica" class="estrecho-app esqueleto" aria-busy="true">
+    <p class="solo-lectores" role="status">Cargando la historia…</p>
+    <div class="sk" style="width:70%;height:36px"></div>
+    <div class="sk" style="aspect-ratio:16/9;border-radius:22px"></div>
+    <div class="sk" style="height:120px;border-radius:22px"></div>
+  </main>
+
+  <main id="no-disponible" class="estrecho-app" hidden>
+    <section class="vacio">
+      <h1 class="d">Esta historia ya no está disponible</h1>
+      <p>Puede que su dueño haya dejado de compartirla.</p>
+      <a class="btn btn-p ancho-total" href="/">Crear la historia de mi mascota</a>
+    </section>
+  </main>
+
+  <main id="libro" hidden>
+    <div class="libro-dentro">
+      <p class="publica-etiqueta">Una historia de Mascotadas protagonizada por <strong id="protagonista"></strong></p>
+      <h1 id="titulo-libro" class="d"></h1>
+      <div class="libro-cuerpo">
+        <figure id="pagina" class="pagina-libro"></figure>
+        <div class="libro-lado">
+          <div class="texto-libro"><p id="texto-pagina" aria-live="polite"></p></div>
+          <nav aria-label="Páginas" class="paginacion">
+            <button type="button" id="anterior" class="btn-nav" aria-label="Página anterior">
+              <svg width="26" height="26" aria-hidden="true"><use href="#i-izq"/></svg><span class="solo-ancho">Anterior</span>
+            </button>
+            <div class="contador">
+              <span id="contador" class="d"></span>
+              <span id="puntos" class="puntos" aria-hidden="true"></span>
+            </div>
+            <button type="button" id="siguiente" class="btn-nav btn-nav-siguiente" aria-label="Página siguiente">
+              <span class="solo-ancho">Siguiente</span><svg width="26" height="26" aria-hidden="true"><use href="#i-der"/></svg>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      <section id="final" class="caja llamada-publica" hidden>
+        <span class="pegatina">Fin</span>
+        <h2 class="d">¿Qué hace tu mascota cuando te vas de casa?</h2>
+        <p class="texto-suave">Cuéntenos cómo es su mascota y le creamos su propia comedia de 6 páginas, dibujada y narrada. Los 3 primeros días son gratis.</p>
+        <a class="btn btn-p btn-xl ancho-total" href="/">
+          <svg width="24" height="24" aria-hidden="true"><use href="#i-estrella"/></svg>
+          Crea la historia de tu mascota
+        </a>
+      </section>
+    </div>
+
+    <section id="narracion" class="narracion" aria-label="Narración" hidden>
+      <div class="narracion-controles">
+        <button type="button" id="leer" class="play" aria-label="Escuchar">
+          <svg class="icono-play" width="30" height="30" aria-hidden="true"><use href="#i-play"/></svg>
+          <svg class="icono-pausa" width="28" height="28" aria-hidden="true"><use href="#i-pausa"/></svg>
+        </button>
+        <div class="narracion-info">
+          <span class="narracion-estado"><span id="estado-audio">Escuchar</span>
+            <span class="onda" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+          </span>
+          <label for="voz" class="solo-lectores">Voz del narrador</label>
+          <span class="selector">
+            <select id="voz" class="sel"></select>
+            <svg width="18" height="18" aria-hidden="true"><use href="#i-chev"/></svg>
+          </span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <div class="ancho pie-dentro">
+      <div class="marca-pie">
+        <svg class="logo" width="36" height="36" aria-hidden="true" style="color:#fff"><use href="#i-logo"/></svg>
+        <span class="d">Mascotadas</span>
+      </div>
+      <nav aria-label="Legal">
+        <a href="/aviso-legal">Aviso legal</a>
+        <a href="/privacidad">Privacidad</a>
+        <a href="/condiciones">Términos y condiciones</a>
+        <a href="/cookies">Cookies</a>
+      </nav>
+      <p class="pie-nota">© 2026 Mascotadas</p>
+    </div>
+  </footer>
+
+  <script type="module" src="/publica.js"></script>
+</body>
+</html>
