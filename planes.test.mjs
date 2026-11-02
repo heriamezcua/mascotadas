@@ -20,9 +20,10 @@ test("los historias restantes respetan el máximo de cada plan", () => {
   assert.equal(restantes(null, 0), 0);
   assert.equal(restantes({ plan: "prueba" }, 2), 1);
   assert.equal(restantes({ plan: "prueba" }, 3), 0);
-  assert.equal(restantes({ plan: "basico" }, 11), 1);
-  assert.equal(restantes({ plan: "basico" }, 13), 0);
-  assert.equal(restantes({ plan: "premium" }, 1), 1);
+  assert.equal(restantes({ plan: "basico" }, 7), 1);
+  assert.equal(restantes({ plan: "basico" }, 8), 0);
+  assert.equal(restantes({ plan: "premium" }, 0), 1);
+  assert.equal(restantes({ plan: "premium" }, 1), 0);
 });
 
 test("el estado de Stripe decide el acceso", () => {

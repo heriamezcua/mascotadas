@@ -57,6 +57,27 @@ button { font: inherit; cursor: pointer; border: 0; border-radius: 12px; min-hei
 @keyframes mecer { 50% { transform: rotate(-16deg) translateY(-6px); } }
 @media (prefers-reduced-motion: reduce) { .luna { animation: none; } }
 
+#cargando {
+  place-content: start center; overflow-y: auto; padding-top: 48px; gap: 16px; z-index: 10;
+  background: radial-gradient(circle at 80% 0, var(--noche-2), var(--noche) 60%);
+}
+#cargando > * { width: min(100%, 560px); }
+#cargando .luna { width: 84px; }
+#progreso { margin: 0; color: var(--oro); font-weight: 600; }
+#abrir-lista { background: var(--oro); color: var(--tinta); font-weight: 600; animation: llamar 1.6s ease-in-out infinite; }
+@keyframes llamar { 50% { transform: scale(1.03); } }
+@media (prefers-reduced-motion: reduce) { #abrir-lista { animation: none; } }
+.quiz { background: var(--crema); color: var(--tinta); border-radius: 18px; padding: 20px; text-align: left; display: grid; gap: 12px; }
+.quiz-cabecera { margin: 0; font-size: 14px; color: var(--suave); }
+.quiz h2 { margin: 0; font-size: 22px; }
+.quiz-opciones { display: grid; gap: 8px; }
+.quiz-opciones button { background: #fff; color: var(--tinta); border: 1.5px solid #dcd2bd; text-align: left; }
+.quiz-opciones button:disabled { cursor: default; opacity: .6; }
+.quiz-opciones .bien { border-color: #2f8f5b; background: #e3f5ea; opacity: 1 !important; }
+.quiz-opciones .mal { border-color: var(--error); background: #fbe6e4; opacity: 1 !important; }
+#quiz-dato { margin: 0; }
+.quiz .suave { background: var(--noche); color: var(--crema); }
+
 .barra { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .aviso { background: rgba(242, 195, 91, .16); border-radius: 10px; padding: 8px 12px; font-size: 15px; margin: 0 0 8px; }
 #titulo-libro { font-size: 30px; margin: 8px 0 16px; }
@@ -106,11 +127,70 @@ details p { margin: 8px 0 0; color: #ddebe8; }
 .legal h1 { font-size: 34px; }
 .legal h2 { margin-top: 28px; font-size: 22px; }
 
+/* Animación de las escenas: cada página arranca la suya al pintarse. */
+.escena .entra { animation: entra 1s cubic-bezier(.2, .9, .3, 1.15) both; }
+.escena .bota { animation: bota 1.4s ease-in-out 1s infinite; }
+.escena .sombra { transform-box: fill-box; transform-origin: center; animation: sombra 1.4s ease-in-out 1s infinite; }
+.escena .cola { animation: cola .45s ease-in-out infinite alternate; }
+.escena .cabeza { animation: cabeza 3.2s ease-in-out infinite; }
+.escena .ojos { transform-box: fill-box; transform-origin: center; animation: parpadeo 4.2s infinite; }
+.escena .orejas { animation: cabeza 2.4s ease-in-out infinite reverse; }
+.escena .lengua { transform-box: fill-box; transform-origin: top center; animation: lengua .6s ease-in-out infinite alternate; }
+.escena .balanceo { animation: balanceo 4s ease-in-out infinite alternate; }
+.escena .derivar { animation: derivar 16s ease-in-out infinite alternate; }
+.escena .ola { animation: ola 7s linear infinite; }
+.escena .ola.lenta { animation-duration: 11s; animation-direction: reverse; }
+.escena .titilar { transform-box: fill-box; transform-origin: center; animation: titilar 2.6s ease-in-out infinite; }
+.escena .latir { transform-box: fill-box; transform-origin: center; animation: latir 3s ease-in-out infinite; }
+.escena .girar { animation: girar 24s linear infinite; }
+.escena .flotar { animation: flotar 2.6s ease-in-out infinite; }
+.escena .llama { transform-box: fill-box; transform-origin: top center; animation: llama .14s ease-in-out infinite alternate; }
+.escena .mecer { animation: mecer 3.4s ease-in-out infinite; }
+.escena .aletear { transform-box: fill-box; transform-origin: center; animation: aletear .22s ease-in-out infinite alternate; }
+.escena .revolotear { animation: revolotear 6s ease-in-out infinite; }
+.escena .ondear { transform-box: fill-box; transform-origin: left center; animation: ondear .9s ease-in-out infinite alternate; }
+.escena .cruzar { animation: cruzar 6s linear infinite; }
+.escena .luz { animation: luz 7s steps(1) infinite; }
+.escena .fondo-ia { transform-box: fill-box; transform-origin: center; animation: camara 18s ease-in-out infinite alternate, aparece-fondo .8s both; }
+.escena .brillo { transform-box: fill-box; transform-origin: center; animation: brillo 1.8s ease-in-out infinite; }
+.pagina .escena + p, #pagina p { animation: aparece .6s .4s both; }
+
+@keyframes entra { 0% { transform: translate(-480px, 0); } 60% { transform: translate(20px, -40px); } 80% { transform: translate(0, 0); } 90% { transform: translate(0, -10px); } 100% { transform: none; } }
+@keyframes bota { 50% { transform: translateY(-7px); } }
+@keyframes sombra { 50% { transform: scaleX(.85); opacity: .14; } }
+@keyframes cola { from { transform: rotate(-16deg); } to { transform: rotate(20deg); } }
+@keyframes cabeza { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(5deg); } }
+@keyframes parpadeo { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+@keyframes lengua { to { transform: scaleY(1.25); } }
+@keyframes balanceo { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+@keyframes derivar { to { transform: translateX(70px); } }
+@keyframes ola { to { transform: translateX(-400px); } }
+@keyframes titilar { 50% { opacity: .25; transform: scale(.6); } }
+@keyframes latir { 50% { transform: scale(1.12); opacity: .45; } }
+@keyframes girar { to { transform: rotate(360deg); } }
+@keyframes flotar { 50% { transform: translateY(-14px); } }
+@keyframes llama { from { transform: scaleY(.75); } to { transform: scaleY(1.2); } }
+@keyframes mecer { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg) translateY(4px); } }
+@keyframes aletear { to { transform: scaleX(.25); } }
+@keyframes revolotear { 25% { transform: translate(30px, -20px); } 50% { transform: translate(-10px, -40px); } 75% { transform: translate(-30px, -10px); } }
+@keyframes ondear { from { transform: skewY(-8deg); } to { transform: skewY(8deg); } }
+@keyframes cruzar { from { transform: translate(-100px, 60px); } to { transform: translate(950px, -60px); } }
+@keyframes luz { 0% { opacity: 1; } 40% { opacity: .35; } 55% { opacity: 1; } }
+@keyframes brillo { 0%, 100% { transform: scale(0); } 50% { transform: scale(1) rotate(45deg); } }
+@keyframes camara { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.06) translate(-14px, -6px); } }
+@keyframes aparece-fondo { from { opacity: 0; } to { opacity: 1; } }
+@keyframes aparece { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .escena *, .pagina p { animation: none !important; }
+}
+
 .solo-impresion { display: none; }
 
 @media print {
   body { background: #fff; color: #000; }
   #inicio, .cabecera, .pie, .barra, .paso, #pagina, .aviso, dialog { display: none !important; }
   .solo-impresion { display: block; }
+  .escena * { animation: none !important; }
   .solo-impresion .pagina { break-inside: avoid; background: #fff; color: #000; margin-bottom: 24px; }
 }

@@ -95,12 +95,12 @@
         <article class="plan">
           <h3>Aventuras</h3>
           <p class="precio"><strong>Gratis</strong> 3 días</p>
-          <p>3 historias de prueba. Después, 4,99 € al mes con 12 historias nuevas.</p>
+          <p>3 historias de prueba. Después, 4,99 € al mes con 8 historias nuevas.</p>
         </article>
         <article class="plan destacado">
           <h3>Premium</h3>
-          <p class="precio"><strong>14,99 €</strong> al mes</p>
-          <p>2 historias nuevas cada día.</p>
+          <p class="precio"><strong>19,99 €</strong> al mes</p>
+          <p>1 historia nueva cada día.</p>
         </article>
       </div>
       <p class="nota-clara">IVA incluido. Volver a escuchar sus historias no cuenta como historia nueva.</p>
@@ -117,7 +117,15 @@
 
   <div id="cargando" class="pantalla" hidden>
     <div class="luna" aria-hidden="true"></div>
-    <p>Siguiendo su rastro…</p>
+    <p id="progreso" aria-live="polite">Siguiendo su rastro…</p>
+    <button type="button" id="abrir-lista" class="principal" hidden>¡Su historia está lista! Abrir</button>
+    <section class="quiz" aria-labelledby="quiz-pregunta">
+      <p class="quiz-cabecera">Quiz de mascotas mientras esperáis · <span id="quiz-puntos"></span></p>
+      <h2 id="quiz-pregunta"></h2>
+      <div id="quiz-opciones" class="quiz-opciones"></div>
+      <p id="quiz-dato" aria-live="polite" hidden></p>
+      <button type="button" id="quiz-siguiente" class="suave" hidden>Siguiente pregunta</button>
+    </section>
   </div>
 
   <main id="libro" hidden>
@@ -164,13 +172,13 @@
     <section class="plan" id="plan-basico">
       <h3>Aventuras</h3>
       <p class="precio"><strong>Gratis</strong> 3 días</p>
-      <p>3 historias de prueba. Te pedimos la tarjeta, pero hoy no se cobra nada. Si no cancelas, sigue a 4,99 € al mes con 12 historias nuevas.</p>
+      <p>3 historias de prueba. Te pedimos la tarjeta, pero hoy no se cobra nada. Si no cancelas, sigue a 4,99 € al mes con 8 historias nuevas.</p>
       <button type="button" class="principal" data-plan="prueba">Probar 3 días gratis</button>
     </section>
     <section class="plan destacado" id="plan-premium">
       <h3>Premium</h3>
-      <p class="precio"><strong>14,99 €</strong> al mes</p>
-      <p>2 historias nuevas cada día.</p>
+      <p class="precio"><strong>19,99 €</strong> al mes</p>
+      <p>1 historia nueva cada día.</p>
       <button type="button" class="principal" data-plan="premium">Elegir Premium</button>
     </section>
     <label class="aceptar" id="bloque-aceptar">

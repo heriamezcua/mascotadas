@@ -9,6 +9,7 @@ if (existsSync(join(raiz, ".env.local"))) process.loadEnvFile(join(raiz, ".env.l
 
 const { escribirHistoria, hayIA } = await import("./historias.mjs");
 const { narrar, hayVoz } = await import("./voz.mjs");
+const { pintarFondos, hayImagenes, claveFicha } = await import("./fondos.mjs");
 const datos = await import("./datos.mjs");
 const pagos = await import("./pagos.mjs");
 const { inicioDelPeriodo, restantes } = await import("./planes.mjs");
@@ -26,11 +27,28 @@ const CABECERAS = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
   "Content-Security-Policy":
-    "default-src 'self'; img-src 'self' data:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; " +
+    "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; " +
     `connect-src 'self' ${process.env.SUPABASE_URL || ""}; frame-ancestors 'none'; base-uri 'self'`,
 };
 
 const generando = new Set(); // Impide saltarse el máximo pidiendo dos historias a la vez.
+
+// Si un fondo falla, se marca para que la página se quede con el escenario dibujado y no lo siga esperando.
+async function pintarEnSegundoPlano(usuario, historia) {
+  try {
+    const clave = claveFicha(historia.mascota);
+    const pintadas = await pintarFondos(historia.paginas, historia.mascota, {
+      leerFicha: () => datos.leerFicha(usuario, clave),
+      guardarFicha: (imagen) => datos.guardarFicha(usuario, clave, imagen),
+      guardar: (i, imagen) => datos.guardarFondo(usuario, historia.id, i, imagen),
+    });
+    if (pintadas.every(Boolean)) return;
+    const paginas = historia.paginas.map((pagina, i) => ({ ...pagina, imagen: pintadas[i] }));
+    await datos.actualizarHistoria(historia.id, usuario, { paginas });
+  } catch (error) {
+    console.error("Fondos:", error.message);
+  }
+}
 
 function limpiar(cuerpo) {
   const mascota = {};
@@ -67,6 +85,7 @@ const rutas = {
   "GET /api/estado": async (req, res) => responder(res, 200, {
     ia: hayIA(),
     voz: hayVoz(),
+    imagenes: hayImagenes(),
     local: datos.local,
     supabaseUrl: process.env.SUPABASE_URL ?? null,
     supabaseAnon: process.env.SUPABASE_ANON_KEY ?? null,
@@ -88,10 +107,30 @@ const rutas = {
       const { perfil, quedan } = await cuentaDe(usuario);
       if (quedan === 0) return responder(res, 402, { error: "limite", plan: perfil.plan ?? null });
       const { titulo, paginas, modo } = await escribirHistoria(mascota);
-      responder(res, 200, await datos.crearHistoria(usuario.id, { titulo, paginas, modo, mascota }));
+      const conFondo = paginas.map((pagina) => ({ ...pagina, imagen: hayImagenes() && pagina.fondo ? "escena" : false }));
+      const historia = await datos.crearHistoria(usuario.id, { titulo, paginas: conFondo, modo, mascota });
+      // Los fondos tardan minutos: la historia se abre ya y cada fondo aparece en cuanto está pintado.
+      if (hayImagenes()) pintarEnSegundoPlano(usuario.id, historia);
+      responder(res, 200, historia);
     } finally {
       generando.delete(usuario.id);
     }
+  },
+
+  "GET /api/fondo": async (req, res, usuario) => {
+    const consulta = new URL(req.url, "http://localhost").searchParams;
+    const historia = consulta.get("historia") ?? "";
+    const pagina = Number(consulta.get("pagina"));
+    if (!/^[0-9a-f-]{36}$/i.test(historia) || !Number.isInteger(pagina) || pagina < 0 || pagina > 9) {
+      return responder(res, 400, { error: "No válido" });
+    }
+    const imagen = await datos.leerFondo(usuario.id, historia, pagina);
+    if (!imagen) {
+      const fallido = (await datos.leerHistoria(historia, usuario.id))?.paginas[pagina]?.imagen === false;
+      return responder(res, fallido ? 410 : 404, { error: "No existe" });
+    }
+    res.writeHead(200, { "Content-Type": "image/jpeg", "Cache-Control": "private, max-age=604800", ...CABECERAS });
+    res.end(imagen);
   },
 
   // La voz solo lee páginas de las historias del propio usuario: la clave no sirve para narrar otra cosa.

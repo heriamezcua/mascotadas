@@ -26,7 +26,7 @@ create index historias_usuario_creado on public.historias (usuario, creado desc)
 alter table public.perfiles enable row level security;
 alter table public.historias enable row level security;
 
-insert into storage.buckets (id, name, public) values ('audio', 'audio', false);
+insert into storage.buckets (id, name, public) values ('audio', 'audio', false), ('fondos', 'fondos', false);
 
 -- Solo el servidor accede a las tablas.
 grant all on public.perfiles, public.historias to service_role;

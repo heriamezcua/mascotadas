@@ -28,7 +28,7 @@ Cada valor va como variable en Railway, nunca en el repositorio ni en el chat. L
 - [ ] Activar la cuenta con tus datos de autónomo.
 - [ ] Crear los tres precios, con impuestos incluidos:
   - `STRIPE_PRECIO_BASICO`: 4,99 € al mes.
-  - `STRIPE_PRECIO_PREMIUM`: 14,99 € al mes.
+  - `STRIPE_PRECIO_PREMIUM`: 19,99 € al mes.
 - [ ] Activar Stripe Tax y añadir el registro de IVA de España (sin él, Stripe no calcula el IVA: sale 0,00 €).
 - [ ] Tras activar la cuenta, poner `https://mascotadas.com/condiciones` en Configuración → Empresa → Datos de la empresa, y `STRIPE_PEDIR_CONDICIONES=si` en Railway.
 - [ ] Activar el portal de clientes: cancelar, cambiar tarjeta y ver facturas.

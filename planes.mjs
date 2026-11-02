@@ -1,7 +1,7 @@
 export const PLANES = {
   prueba: { historias: 3 },
-  basico: { historias: 12 },
-  premium: { historias: 2, diario: true },
+  basico: { historias: 8 },
+  premium: { historias: 1, diario: true },
 };
 
 const ZONA = "Europe/Madrid";

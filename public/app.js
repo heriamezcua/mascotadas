@@ -1,4 +1,5 @@
-import { ilustrar } from "./ilustracion.js";
+import { ilustrar, ponerFondo } from "./ilustracion.js";
+import { empezarQuiz } from "./quiz.js";
 
 const $ = (id) => document.getElementById(id);
 const BORRADOR = "mascotadas.borrador";
@@ -9,6 +10,34 @@ const EJEMPLO = {
   objetos: ["tesoro"],
   texto: "A las 8:03, en cuanto se cerró la puerta, Toby abrió un ojo. Oficialmente, dormía. En realidad, llevaba meses planeando el mayor robo de calcetines de la historia del barrio. Y hoy, por fin, conseguiría el par de rayas del armario de arriba.",
 };
+
+const fondos = new Map(); // Cada fondo se descarga una vez por visita.
+const esperar = (ms) => new Promise((listo) => setTimeout(listo, ms));
+
+// Un fondo recién pedido puede tardar unos minutos en pintarse: mientras no exista, se vuelve a preguntar.
+function cargarFondo(historia, pagina) {
+  const clave = `${historia}-${pagina}`;
+  if (!fondos.has(clave)) {
+    fondos.set(clave, (async () => {
+      for (let intento = 0; intento < 72; intento++) {
+        const r = await api(`/api/fondo?historia=${historia}&pagina=${pagina}`).catch(() => null);
+        if (r?.ok) return URL.createObjectURL(await r.blob());
+        if (r && r.status !== 404) break;
+        await esperar(5000);
+      }
+      fondos.delete(clave);
+      return null;
+    })());
+  }
+  return fondos.get(clave);
+}
+
+async function pintarFondo(contenedor, historia, pagina) {
+  if (!historia.paginas[pagina]?.imagen) return;
+  const escena = contenedor.querySelector(".escena");
+  const url = await cargarFondo(historia.id, pagina);
+  if (url && escena.isConnected) ponerFondo(escena, url, historia.paginas[pagina].imagen === "escena"); // Si ya se ha pasado de página, no se toca la nueva.
+}
 
 const estado = { config: null, cliente: null, sesion: null, cuenta: null, actual: null, pagina: 0, leyendo: false, audio: null };
 
@@ -62,7 +91,7 @@ function pintarCuenta() {
   $("saldo").textContent = !cuenta?.plan
     ? ""
     : cuenta.plan === "premium"
-      ? `Hoy le quedan ${cuenta.quedan} de 2 historias nuevas.`
+      ? cuenta.quedan ? "Hoy le queda 1 historia nueva." : "Hoy ya ha estrenado su historia."
       : `Le quedan ${cuenta.quedan} historias nuevas.`;
   $("lista").replaceChildren(...historias.map((historia) => {
     const li = document.createElement("li");
@@ -92,6 +121,8 @@ function pintarPagina() {
   texto.textContent = datos.texto;
   $("pagina").innerHTML = ilustrar(datos, actual.mascota);
   $("pagina").append(texto);
+  pintarFondo($("pagina"), actual, pagina);
+  if (actual.paginas[pagina + 1]?.imagen) cargarFondo(actual.id, pagina + 1);
   $("contador").textContent = `${pagina + 1} de ${actual.paginas.length}`;
   $("anterior").disabled = pagina === 0;
   $("siguiente").disabled = pagina === actual.paginas.length - 1;
@@ -103,13 +134,14 @@ function abrir(historia) {
   estado.pagina = 0;
   $("titulo-libro").textContent = historia.titulo;
   $("aviso-muestra").hidden = historia.modo !== "muestra";
-  $("todas").replaceChildren(...historia.paginas.map((datos) => {
+  $("todas").replaceChildren(...historia.paginas.map((datos, i) => {
     const hoja = document.createElement("article");
     hoja.className = "pagina";
     hoja.innerHTML = ilustrar(datos, historia.mascota);
     const texto = document.createElement("p");
     texto.textContent = datos.texto;
     hoja.append(texto);
+    pintarFondo(hoja, historia, i);
     return hoja;
   }));
   pintarPagina();
@@ -159,9 +191,9 @@ function abrirMuro() {
   const premium = plan === "premium";
   $("muro-titulo").textContent = plan ? "Ya ha usado sus historias" : "Elige su plan";
   $("muro-texto").textContent = premium
-    ? "Mañana tendrá 2 historias nuevas. Hoy puede volver a escuchar las que ya tiene."
+    ? "Mañana tendrá otra historia nueva. Hoy puede volver a escuchar las que ya tiene."
     : plan
-      ? "Con Premium tendría 2 historias nuevas cada día. El cambio de plan se cobra hoy."
+      ? "Con Premium tendría 1 historia nueva cada día. El cambio de plan se cobra hoy."
       : "Historias ilustradas y narradas. Volver a escucharlas no cuenta como historia nueva.";
   $("plan-basico").hidden = Boolean(plan);
   $("plan-premium").hidden = premium;
@@ -175,8 +207,23 @@ function pedirAcceso() {
   $("acceso").showModal();
 }
 
+const ESPERA_MAXIMA = 150000; // Si los fondos se atascan, la historia se abre igual y terminan de llegar dentro.
+
+// La historia se abre cuando las 3 primeras páginas tienen su fondo; el resto se sigue pintando mientras se lee.
+async function esperarFondos(historia) {
+  const primeras = historia.paginas.slice(0, 3).flatMap((pagina, i) => (pagina.imagen ? [cargarFondo(historia.id, i)] : []));
+  let listas = 0;
+  const contar = () => ($("progreso").textContent = `Pintando sus escenarios: ${listas} de ${primeras.length}…`);
+  contar();
+  const todas = Promise.all(primeras.map((fondo) => fondo.then(() => { listas++; contar(); })));
+  await Promise.race([todas, esperar(ESPERA_MAXIMA)]);
+}
+
 async function crear(mascota) {
   mostrar("cargando");
+  $("progreso").textContent = `Escribiendo la historia de ${mascota.nombre}…`;
+  $("abrir-lista").hidden = true;
+  empezarQuiz();
   try {
     const respuesta = await api("/api/historia", { method: "POST", body: JSON.stringify(mascota) });
     const datos = await respuesta.json();
@@ -186,8 +233,12 @@ async function crear(mascota) {
     }
     if (!respuesta.ok) throw new Error(datos.error);
     guardarBorrador(null);
-    await refrescar();
-    abrir(datos);
+    await Promise.all([refrescar(), esperarFondos(datos)]);
+    // No se abre sola: así nadie se queda a medias de una pregunta del quiz.
+    $("progreso").textContent = "¡Ya está!";
+    $("abrir-lista").onclick = () => abrir(datos);
+    $("abrir-lista").hidden = false;
+    $("abrir-lista").focus();
   } catch (error) {
     fallo(error.message || "No hemos podido escribir la historia. Inténtalo otra vez.");
   }
