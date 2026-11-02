@@ -307,9 +307,10 @@
         <p id="mania-error" class="error-campo" hidden><svg width="20" height="20" aria-hidden="true"><use href="#i-alerta"/></svg>Cuéntenos su manía, aunque sea pequeña</p>
         <div class="ideas">
           <span>Ideas:</span>
-          <button type="button" class="idea">Roba calcetines</button>
-          <button type="button" class="idea">Odia el aspirador</button>
-          <button type="button" class="idea">Duerme encima del teclado</button>
+          <span id="ideas" class="ideas-lista"></span>
+          <button type="button" id="otras-ideas" class="idea idea-otras" aria-label="Ver otras ideas">
+            <svg width="16" height="16" aria-hidden="true"><use href="#i-repetir"/></svg>
+          </button>
         </div>
       </div>
 
@@ -491,21 +492,30 @@
     <button type="button" class="cerrar" data-cerrar aria-label="Cerrar"><svg width="24" height="24" aria-hidden="true"><use href="#i-cruz"/></svg></button>
     <div id="acceso-formulario">
       <h2 id="acceso-titulo" class="d">Entrar</h2>
-      <p class="texto-suave">Le enviamos un enlace a su email. Sin contraseñas.</p>
+      <p class="texto-suave">Sin contraseñas. Solo la primera vez en cada dispositivo.</p>
+      <div id="boton-google" class="boton-google" hidden></div>
+      <p id="separador-acceso" class="separador" hidden><span>o con su email</span></p>
       <form id="formulario-acceso">
         <label class="etiqueta-campo" for="email">Su email</label>
         <input id="email" class="campo" type="email" name="email" required autocomplete="email" placeholder="nombre@correo.com">
         <p id="acceso-aviso" class="error-campo" role="alert" hidden></p>
-        <button type="submit" class="btn btn-p ancho-total">Enviarme el enlace</button>
+        <button type="submit" class="btn btn-p ancho-total">Enviarme un código</button>
       </form>
       <p class="texto-suave pequeno">Al continuar acepta los <a href="/condiciones" target="_blank">Términos y condiciones</a> y la <a href="/privacidad" target="_blank">Política de privacidad</a>.</p>
     </div>
-    <div id="acceso-enviado" class="centrado" hidden>
+    <div id="acceso-enviado" hidden>
       <span class="circulo-grande fondo-menta" aria-hidden="true">
         <svg viewBox="0 0 48 48" width="50" height="50" fill="#fff" stroke="#2B1840" stroke-width="3" stroke-linejoin="round"><rect x="6" y="12" width="36" height="26" rx="4"/><path d="M7 14l17 13 17-13" fill="none" stroke-linecap="round"/></svg>
       </span>
-      <h2 class="d">Mire su correo</h2>
-      <p class="texto-suave">Hemos enviado un enlace a <strong id="acceso-email"></strong>. Púlselo desde este dispositivo para entrar. Si no lo ve, mire en spam.</p>
+      <h2 class="d centrado">Escriba su código</h2>
+      <p class="texto-suave centrado">Lo hemos enviado a <strong id="acceso-email"></strong>. Si no lo ve, mire en spam.</p>
+      <form id="formulario-codigo">
+        <label class="solo-lectores" for="codigo">Código de acceso</label>
+        <input id="codigo" class="campo campo-codigo" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="8" placeholder="······">
+        <p id="codigo-aviso" class="error-campo" role="alert" hidden></p>
+        <button type="submit" class="btn btn-p ancho-total">Entrar</button>
+      </form>
+      <button type="button" id="reenviar-codigo" class="btn btn-discreto ancho-total">Reenviar el código</button>
       <button type="button" id="otro-email" class="btn btn-discreto ancho-total">Usar otro email</button>
     </div>
   </dialog>
@@ -536,7 +546,7 @@
     </dl>
     <label class="casilla">
       <input type="checkbox" id="empezar-ya">
-      <span>Quiero empezar ahora. Entiendo que pierdo el derecho de desistimiento de 14 días en cuanto se cree mi primera historia. <a href="/condiciones" target="_blank">Términos y condiciones</a></span>
+      <span>Quiero empezar ya. Al crear mi primera historia, renuncio a la devolución por desistimiento. <a href="/condiciones" target="_blank">Más información</a></span>
     </label>
     <p id="muro-error" class="error-campo" role="alert" hidden></p>
     <button type="button" id="pagar" class="btn btn-p ancho-total">Probar 3 días gratis</button>

@@ -29,8 +29,11 @@ const CABECERAS = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
   "Content-Security-Policy":
-    "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; " +
-    `connect-src 'self' ${process.env.SUPABASE_URL || ""}; frame-ancestors 'none'; base-uri 'self'`,
+    // accounts.google.com: el botón oficial de «Continuar con Google», que solo se carga al abrir la ventana de entrar.
+    "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; " +
+    "script-src 'self' https://accounts.google.com/gsi/client; frame-src https://accounts.google.com/gsi/; " +
+    "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; " +
+    `connect-src 'self' https://accounts.google.com/gsi/ ${process.env.SUPABASE_URL || ""}; frame-ancestors 'none'; base-uri 'self'`,
 };
 
 const pases = new Map(); // Pases de audio: el reproductor no puede mandar la sesión.
@@ -144,6 +147,7 @@ const rutas = {
     local: datos.local,
     supabaseUrl: process.env.SUPABASE_URL ?? null,
     supabaseAnon: process.env.SUPABASE_ANON_KEY ?? null,
+    googleCliente: process.env.GOOGLE_CLIENT_ID ?? null, // Público: lo usa el botón de Google en el navegador.
   }),
 
   "GET /api/yo": async (req, res, usuario) => {

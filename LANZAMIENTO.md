@@ -53,7 +53,7 @@ Cada valor va como variable en Railway, nunca en el repositorio ni en el chat. L
 - [x] Datos del titular puestos en el aviso legal, las condiciones y la privacidad.
 - [x] Correo `contacto@mascotadas.com` creado en Cloudflare y reenviado a Gmail (comprobado).
 - [ ] Filtro en Gmail para que lo enviado a `contacto@mascotadas.com` nunca vaya a spam.
-- [ ] Si se añade Resend u otro proveedor (correo, analítica…), añadirlo en el apartado 6 de `public/privacidad.html`.
+- [x] Resend y el acceso con Google añadidos en el apartado 6 de `public/privacidad.html`. Si se añade otro proveedor (analítica…), añadirlo también.
 - [ ] Revisarlos con un profesional: son un borrador.
 
 ## Prueba final, con claves de prueba de Stripe

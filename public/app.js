@@ -14,7 +14,6 @@ const ESPECIES = [
   ["caballo", "Caballo"], ["loro", "Loro"], ["serpiente", "Serpiente"], ["tarantula", "Tarántula"],
 ];
 const VISIBLES = 8; // El resto de especies se abre con «Más animales».
-const COLORES_ICONO = ["#FF8A2B", "#B69CFF", "#FFD23F", "#3DD6B0", "#FF8FB8", "#9FE3FF"];
 const PERSONALIDADES = [
   ["muy dramático", "Dramático"], ["un genio incomprendido", "Genio incomprendido"], ["vago profesional", "Vago profesional"],
   ["valiente sin motivo", "Valiente"], ["un cotilla", "Cotilla"], ["un tragón sin remedio", "Tragón"],
@@ -38,6 +37,31 @@ const COLORES = [
 ];
 const COLLARES = [["#d9503f", "Rojo"], ["#3f7fd9", "Azul"], ["#3fa37a", "Verde"], ["#e8a42c", "Amarillo"], ["#2b2b2b", "Negro"], ["ninguno", "Ninguno"]];
 const RASGOS = ["nombre", "especie", "personalidad", "mania", "color", "collar"];
+// Manías de ejemplo: cada vez que se abre el formulario salen 3 distintas al azar.
+const IDEAS = [
+  "Roba calcetines", "Odia el aspirador", "Duerme encima del teclado", "Ladra al cartero", "Persigue su cola",
+  "Esconde juguetes en el sofá", "Se sube a la mesa", "Mira fijamente la nevera", "Bebe agua del grifo", "Le teme a las bolsas",
+  "Duerme en la ropa limpia", "Roba la comida del plato", "Se mete en todas las cajas", "Persigue la luz del móvil", "Ronca muy fuerte",
+  "Ataca los pies bajo la manta", "Abre los armarios", "Muerde los cables", "Canta cuando suena el timbre", "Tira cosas de la mesa",
+  "Se esconde en la lavadora", "Odia la ducha", "Espera en la puerta", "Roba las zapatillas", "Habla con los pájaros",
+  "Duerme panza arriba", "Se come las plantas", "Persigue a las moscas", "Celoso del robot aspirador", "Se tumba sobre el periódico",
+  "Ladra a su reflejo", "Esconde comida para luego", "Despierta a todos al amanecer", "Arrastra la manta por la casa", "Se asusta con los globos",
+  "Le encanta el queso", "Se sube a las cortinas", "Lame las ventanas", "Sigue a todos al baño", "Colecciona tapones",
+];
+
+const barajarIdeas = () => IDEAS.map((idea) => [Math.random(), idea]).sort((a, b) => a[0] - b[0]).map(([, idea]) => idea);
+
+function pintarIdeas() {
+  const actuales = new Set([...$("ideas").children].map((boton) => boton.textContent));
+  const nuevas = barajarIdeas().filter((idea) => !actuales.has(idea)).slice(0, 3);
+  $("ideas").replaceChildren(...nuevas.map((idea) => {
+    const boton = document.createElement("button");
+    boton.type = "button";
+    boton.className = "idea";
+    boton.textContent = idea;
+    return boton;
+  }));
+}
 const LIMITES = { prueba: 3, basico: 8, premium: 1 };
 const NOMBRES_PLAN = { prueba: "Prueba gratis", basico: "Mensual", premium: "Premium" };
 const TICK = '<span class="marca-ok" aria-hidden="true"><svg><use href="#i-tick"/></svg></span>';
@@ -50,7 +74,7 @@ const fecha = (d) => d.toLocaleDateString("es-ES", { day: "numeric", month: "sho
 
 const estado = {
   config: null, cliente: null, sesion: null, cuenta: null, vista: "portada",
-  actual: null, pagina: 0, leyendo: false, audio: null, mascota: null, ultimaPeticion: null,
+  actual: null, pagina: 0, leyendo: false, audio: null, turno: 0, mascota: null, ultimaPeticion: null,
 };
 
 /* ---------- Fondos pintados por IA ---------- */
@@ -174,13 +198,13 @@ function misMascotas(historias) {
   return [...vistas.values()];
 }
 
-function inicial(nombre, i) {
-  const span = document.createElement("span");
-  span.className = "inicial d";
-  span.setAttribute("aria-hidden", "true");
-  span.style.background = COLORES_ICONO[i % COLORES_ICONO.length];
-  span.textContent = nombre.charAt(0).toUpperCase();
-  return span;
+// Mini retrato de cada especie, pintado en el mismo estilo que las historias.
+const retratoHtml = (especie) => `<img class="retrato" src="img/especies/${ESPECIES.some(([v]) => v === especie) ? especie : "perro"}.jpg" alt="" width="52" height="52" loading="lazy">`;
+
+function retrato(especie) {
+  const plantilla = document.createElement("template");
+  plantilla.innerHTML = retratoHtml(especie);
+  return plantilla.content.firstChild;
 }
 
 function cuandoFue(texto) {
@@ -207,7 +231,7 @@ function pintarMascotas(historias) {
     chip.type = "button";
     chip.className = "chip";
     chip.setAttribute("aria-pressed", String(mascota === estado.mascota));
-    chip.append(inicial(mascota.nombre, i), `${mascota.nombre} · ${etiqueta(ESPECIES, mascota.especie).toLowerCase()}`);
+    chip.append(retrato(mascota.especie), `${mascota.nombre} · ${etiqueta(ESPECIES, mascota.especie).toLowerCase()}`);
     chip.addEventListener("click", () => {
       estado.mascota = mascota;
       pintarMascotas(historias);
@@ -302,7 +326,7 @@ function opcion(clase, nombre, valor, contenido) {
 
 function construirFormulario() {
   $("especies").replaceChildren(...ESPECIES.map(([valor, nombre], i) => {
-    const tile = opcion("tile", "especie", valor, `<span class="inicial d" aria-hidden="true" style="background:${COLORES_ICONO[i % COLORES_ICONO.length]}">${nombre.charAt(0)}</span>${nombre}${TICK}`);
+    const tile = opcion("tile", "especie", valor, `${retratoHtml(valor)}${nombre}${TICK}`);
     tile.dataset.extra = String(i >= VISIBLES);
     return tile;
   }));
@@ -367,6 +391,7 @@ function marcarError(campo, hay) {
 function abrirCrear(mascota) {
   cerrarVentanas();
   ponerMascota(mascota);
+  pintarIdeas();
   $("error").hidden = true;
   mostrar("crear");
 }
@@ -557,6 +582,7 @@ function audioEn(como) {
 }
 
 function parar() {
+  estado.turno++;
   estado.leyendo = false;
   estado.audio?.pause();
   estado.audio = null;
@@ -565,6 +591,7 @@ function parar() {
 
 // Pausar conserva el audio de la página, así "Continuar" sigue en el mismo segundo.
 function pausar() {
+  estado.turno++;
   estado.leyendo = false;
   estado.audio?.pause();
   audioEn("pausa");
@@ -580,6 +607,7 @@ async function prepararAudio(historia, pagina, voz) {
 }
 
 let siguiente = null; // La página siguiente se prepara mientras suena la actual.
+const PAUSA_ENTRE_PAGINAS = 1500; // Al acabar una página, 1,5 segundos antes de pasar a la siguiente.
 
 async function leerPagina() {
   const { id, paginas } = estado.actual;
@@ -599,10 +627,14 @@ async function leerPagina() {
   }
   estado.audio = audio;
   if (pagina < paginas.length - 1) siguiente = { clave: `${id}-${pagina + 1}-${voz}`, promesa: prepararAudio(id, pagina + 1, voz) };
-  audio.onended = () => {
+  audio.onended = async () => {
     if (!estado.leyendo) return;
     if (estado.pagina < estado.actual.paginas.length - 1) {
-      irAPagina(estado.pagina + 1, true);
+      // Al acabar la voz se cuenta 1,5 segundos en la misma página y luego se pasa a la siguiente.
+      const turno = ++estado.turno; // Si alguien pausa o cambia de página mientras tanto, esta espera ya no manda.
+      const { actual } = estado;
+      await esperar(PAUSA_ENTRE_PAGINAS);
+      if (estado.turno === turno && estado.leyendo && estado.actual === actual && estado.pagina === pagina) irAPagina(pagina + 1, true);
     } else {
       parar();
     }
@@ -615,6 +647,7 @@ async function leerPagina() {
 }
 
 function escuchar() {
+  estado.turno++;
   estado.leyendo = true;
   if (estado.audio) {
     audioEn("sonando");
@@ -836,6 +869,97 @@ function pedirAcceso() {
   $("acceso-enviado").hidden = true;
   $("acceso-aviso").hidden = true;
   $("acceso").showModal();
+  prepararGoogle();
+}
+
+/* ---------- Continuar con Google ---------- */
+
+// Botón oficial de Google cargado desde nuestra web: así Google muestra «Mascotadas» y no la dirección de Supabase.
+// El script solo se descarga al abrir la ventana de entrar, nunca al visitar la web.
+let google = null;
+
+function cargarScriptGoogle() {
+  google ??= new Promise((listo, falla) => {
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.onload = () => listo(window.google);
+    script.onerror = () => {
+      google = null;
+      falla(new Error("No se ha podido cargar Google"));
+    };
+    document.head.append(script);
+  });
+  return google;
+}
+
+async function huella(texto) {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto));
+  return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function prepararGoogle() {
+  if (!estado.config?.googleCliente || estado.config.local) return;
+  try {
+    const gis = await cargarScriptGoogle();
+    // El nonce une la respuesta de Google con esta visita: Supabase comprueba que coincide.
+    const nonce = crypto.randomUUID();
+    gis.accounts.id.initialize({
+      client_id: estado.config.googleCliente,
+      nonce: await huella(nonce),
+      use_fedcm_for_button: true,
+      callback: async ({ credential }) => {
+        const { error } = await estado.cliente.auth.signInWithIdToken({ provider: "google", token: credential, nonce });
+        if (error) {
+          $("acceso-aviso").textContent = "No hemos podido entrar con Google. Inténtelo otra vez o entre con su email.";
+          $("acceso-aviso").hidden = false;
+        }
+        // Si va bien, onAuthStateChange cierra la ventana y retoma lo que estaba haciendo.
+      },
+    });
+    const caja = $("boton-google");
+    caja.replaceChildren();
+    caja.hidden = false;
+    $("separador-acceso").hidden = false;
+    gis.accounts.id.renderButton(caja, {
+      type: "standard", theme: "outline", size: "large", text: "continue_with", shape: "pill",
+      logo_alignment: "center", locale: "es", width: Math.min(caja.clientWidth || 360, 400),
+    });
+  } catch (error) {
+    console.error(error);
+    $("boton-google").hidden = true;
+    $("separador-acceso").hidden = true;
+  }
+}
+
+const ESPERA_REENVIO = 60; // Segundos antes de poder pedir otro código.
+let cuentaAtras = null;
+
+function bloquearReenvio() {
+  let quedan = ESPERA_REENVIO;
+  const boton = $("reenviar-codigo");
+  clearInterval(cuentaAtras);
+  const pintar = () => {
+    boton.disabled = quedan > 0;
+    boton.textContent = quedan > 0 ? `Reenviar el código en ${quedan} s` : "Reenviar el código";
+  };
+  pintar();
+  cuentaAtras = setInterval(() => {
+    quedan--;
+    pintar();
+    if (quedan <= 0) clearInterval(cuentaAtras);
+  }, 1000);
+}
+
+// El correo trae un código que se escribe aquí mismo: nadie sale de la web ni abre otro navegador.
+async function enviarCodigo(email) {
+  const { error } = await estado.cliente.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  if (error) {
+    return error.status === 429
+      ? "Hemos enviado varios códigos seguidos. Espere unos minutos y vuelva a intentarlo."
+      : "No hemos podido enviarlo. Inténtelo otra vez.";
+  }
+  return null;
 }
 
 function pintarPago() {
@@ -902,6 +1026,7 @@ function abrirCuenta() {
 
 construirFormulario();
 ponerMascota(null);
+pintarIdeas();
 
 document.addEventListener("click", (evento) => {
   const objetivo = evento.target.closest("[data-ir], [data-volver], [data-cerrar], [data-abrir]");
@@ -925,12 +1050,14 @@ $("formulario").addEventListener("input", (evento) => {
   pintarResumen();
 });
 $("formulario").addEventListener("change", pintarResumen);
-for (const idea of document.querySelectorAll(".idea")) {
-  idea.addEventListener("click", () => {
-    $("mania").value = idea.textContent;
-    marcarError("mania", false);
-  });
-}
+$("ideas").addEventListener("click", (evento) => {
+  const idea = evento.target.closest(".idea");
+  if (!idea) return;
+  $("mania").value = idea.textContent;
+  marcarError("mania", false);
+  pintarResumen();
+});
+$("otras-ideas").addEventListener("click", pintarIdeas);
 
 $("formulario").addEventListener("submit", (evento) => {
   evento.preventDefault();
@@ -957,24 +1084,58 @@ $("formulario-acceso").addEventListener("submit", async (evento) => {
     return;
   }
   boton.disabled = true;
-  const { error } = await estado.cliente.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin } });
+  const fallo = await enviarCodigo(email);
   boton.disabled = false;
-  if (!error) {
-    $("acceso-email").textContent = email;
-    $("acceso-formulario").hidden = true;
-    $("acceso-enviado").hidden = false;
+  if (fallo) {
+    $("acceso-aviso").textContent = fallo;
+    $("acceso-aviso").hidden = false;
     return;
   }
-  $("acceso-aviso").textContent = error.status === 429
-    ? "Hemos enviado varios enlaces seguidos. Mire su correo, también en spam, o vuelva a intentarlo en unos minutos."
-    : "No hemos podido enviarlo. Inténtelo otra vez.";
-  $("acceso-aviso").hidden = false;
+  $("acceso-email").textContent = email;
+  $("acceso-formulario").hidden = true;
+  $("acceso-enviado").hidden = false;
+  $("codigo").value = "";
+  $("codigo-aviso").hidden = true;
+  bloquearReenvio();
+  $("codigo").focus();
+});
+$("formulario-codigo").addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  const codigo = $("codigo").value.replace(/\D/g, "");
+  const boton = evento.target.querySelector("button");
+  if (codigo.length < 6) {
+    $("codigo-aviso").textContent = "Escriba las cifras del código que le hemos enviado.";
+    $("codigo-aviso").hidden = false;
+    return;
+  }
+  boton.disabled = true;
+  const { error } = await estado.cliente.auth.verifyOtp({ email: $("acceso-email").textContent, token: codigo, type: "email" });
+  boton.disabled = false;
+  if (error) {
+    $("codigo-aviso").textContent = "Ese código no es correcto o ha caducado. Revíselo o pida otro.";
+    $("codigo-aviso").hidden = false;
+    return;
+  }
+  // Al verificarse, la sesión avisa por onAuthStateChange y desde ahí se retoma lo que estaba haciendo.
+});
+$("codigo").addEventListener("input", () => {
+  $("codigo-aviso").hidden = true;
+  const cifras = $("codigo").value.replace(/\D/g, "");
+  if ($("codigo").value !== cifras) $("codigo").value = cifras;
+});
+$("reenviar-codigo").addEventListener("click", async () => {
+  const fallo = await enviarCodigo($("acceso-email").textContent);
+  $("codigo-aviso").textContent = fallo ?? "Le hemos enviado un código nuevo.";
+  $("codigo-aviso").hidden = false;
+  if (!fallo) bloquearReenvio();
 });
 $("otro-email").addEventListener("click", () => {
+  clearInterval(cuentaAtras);
   $("acceso-enviado").hidden = true;
   $("acceso-formulario").hidden = false;
   $("email").select();
 });
+
 
 $("muro").addEventListener("change", (evento) => {
   if (evento.target.name === "plan") pintarPago();
@@ -1115,8 +1276,11 @@ $("reintentar-voz").addEventListener("click", () => {
 /* ---------- Arranque ---------- */
 
 async function iniciar() {
+  // Si se vuelve de un enlace de acceso, la dirección trae la sesión: hay que saberlo antes de que Supabase la limpie.
+  const vuelveDeEntrar = /access_token=|[?&]code=/.test(location.href);
   estado.config = await (await fetch("/api/estado")).json();
   $("narracion").hidden = !estado.config.voz;
+
 
   if (!estado.config.local) {
     estado.cliente = window.supabase.createClient(estado.config.supabaseUrl, estado.config.supabaseAnon);
@@ -1142,7 +1306,7 @@ async function iniciar() {
     continuar();
   } else if (dentro()) {
     const borrador = leerBorrador();
-    if (borrador && estado.cuenta?.quedan) continuar();
+    if (borrador && (estado.cuenta?.quedan || vuelveDeEntrar)) continuar();
   }
 }
 

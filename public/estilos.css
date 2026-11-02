@@ -269,7 +269,8 @@ legend { padding: 0; }
 .tile input, .pastilla input, .muestra input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; cursor: pointer; }
 .tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 10px 2px; border: 3px solid var(--tinta); border-radius: 18px; background: #fff; min-height: 98px; font-weight: 800; font-size: 14px; line-height: 1.15; text-align: center; transition: transform .12s ease; }
 .tile svg { width: 36px; height: 36px; }
-.tile .inicial { width: 44px; height: 44px; border-width: 2.5px; font-size: 22px; }
+.retrato { display: block; width: 52px; height: 52px; border-radius: 50%; border: 2.5px solid var(--tinta); object-fit: cover; flex: none; }
+.chip .retrato { width: 38px; height: 38px; border-width: 2px; }
 .pastilla { display: inline-flex; align-items: center; min-height: 48px; padding: 0 16px; border: 3px solid var(--tinta); border-radius: 999px; background: #fff; font-weight: 800; font-size: 16px; transition: transform .12s ease; }
 .tile:hover, .pastilla:hover { transform: translateY(-2px); }
 .tile:has(input:checked), .pastilla:has(input:checked) { background: var(--platano); box-shadow: 0 4px 0 var(--tinta); }
@@ -289,6 +290,8 @@ legend { padding: 0; }
 .ideas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; font-size: 14px; font-weight: 800; color: var(--suave); }
 .idea { font: 700 14px/1 var(--texto); min-height: 40px; padding: 0 12px; border: 2px dashed var(--tinta); border-radius: 999px; background: transparent; color: var(--tinta); cursor: pointer; }
 .idea:hover { background: #fff; }
+.ideas-lista { display: contents; }
+.idea-otras { border-style: solid; padding: 0 10px; display: inline-grid; place-items: center; }
 .barra-enviar { position: sticky; bottom: 0; margin: 10px -18px 0; padding: 14px 18px 20px; background: #fff; border-top: 3px solid var(--tinta); display: flex; flex-direction: column; gap: 8px; z-index: 3; }
 .aviso-error { background: #fff1ef; border: 3px solid var(--peligro); border-radius: 16px; padding: 10px 14px; font-weight: 800; color: #a3241b; }
 @media (min-width: 640px) { .barra-enviar { border: 3px solid var(--tinta); border-bottom: 0; border-radius: 22px 22px 0 0; margin: 10px 0 0; } }
@@ -416,7 +419,7 @@ body.en-publica .narracion { position: sticky; }
 .ventana[open], .ventana > div, .ventana form { display: flex; flex-direction: column; gap: 16px; }
 .ventana h2 { font-size: 30px; line-height: 1.05; padding-right: 44px; }
 .ventana .centrado { align-items: center; }
-.ventana .centrado h2 { padding-right: 0; }
+.ventana .centrado h2, #acceso-enviado h2 { padding-right: 0; }
 .cerrar { position: absolute; top: 12px; right: 12px; width: 48px; height: 48px; border-radius: 14px; border: 2px solid transparent; background: transparent; color: var(--tinta); display: grid; place-items: center; cursor: pointer; }
 .cerrar:hover { border-color: var(--tinta); }
 .etiqueta-campo { font-weight: 800; font-size: 16px; margin-bottom: -8px; }
@@ -424,6 +427,10 @@ body.en-publica .narracion { position: sticky; }
 .ventana .error-campo { margin-top: 0; }
 .ventana .btn { border-radius: 16px; box-shadow: 0 4px 0 var(--tinta); }
 .ventana .btn-discreto { box-shadow: none; }
+.boton-google { min-height: 44px; display: flex; justify-content: center; }
+.separador { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 800; color: var(--suave); }
+.separador::before, .separador::after { content: ""; flex: 1; border-top: 2px dashed #d9d0e6; }
+.campo-codigo { text-align: center; font-size: 34px !important; letter-spacing: .35em; font-weight: 900; padding-left: .35em !important; }
 .opciones-plan { display: flex; flex-direction: column; gap: 12px; }
 .opcion-plan { position: relative; display: flex; gap: 14px; align-items: flex-start; border: 3px solid var(--tinta); border-radius: 18px; padding: 16px; cursor: pointer; background: #fff; }
 .opcion-plan input { width: 24px; height: 24px; margin: 2px 0 0; accent-color: var(--tinta); flex: none; }

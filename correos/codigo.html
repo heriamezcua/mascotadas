@@ -1,0 +1,46 @@
+<!-- Plantilla del correo con el código para entrar. Se pega en Supabase → Authentication → Emails,
+     en «Magic link» y en «Confirm signup». Asunto: Su código para entrar en Mascotadas -->
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Su código para entrar en Mascotadas</title>
+</head>
+<body style="margin:0;padding:0;background:#EAF6FF;font-family:'Trebuchet MS','Segoe UI',Arial,sans-serif;color:#2B1840;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Su código para entrar es {{ .Token }}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EAF6FF;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
+          <tr>
+            <td align="center" style="padding:0 0 20px;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:44px;height:44px;border-radius:22px;background:#FF8A2B;border:3px solid #2B1840;text-align:center;font-size:22px;line-height:44px;">🐾</td>
+                  <td style="padding-left:10px;font-size:28px;font-weight:bold;color:#2B1840;">Mascotadas</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#FFFFFF;border:3px solid #2B1840;border-radius:24px;padding:32px 28px;">
+              <h1 style="margin:0 0 12px;font-size:26px;line-height:1.15;color:#2B1840;">Su código para entrar</h1>
+              <p style="margin:0 0 24px;font-size:17px;line-height:1.5;color:#4A3A5E;">Escríbalo en la ventana de Mascotadas que tiene abierta.</p>
+              <div style="background:#FFD23F;border:3px solid #2B1840;border-radius:18px;padding:18px 12px;text-align:center;font-size:40px;font-weight:bold;letter-spacing:10px;color:#2B1840;">{{ .Token }}</div>
+              <p style="margin:24px 0 0;font-size:15px;line-height:1.5;color:#4A3A5E;">El código caduca en poco tiempo y solo sirve una vez. Si usted no lo ha pedido, puede ignorar este correo: nadie podrá entrar sin él.</p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:20px 8px 0;font-size:13px;line-height:1.5;color:#4A3A5E;">
+              Mascotadas · Cuentos ilustrados y narrados con su mascota<br>
+              <a href="https://mascotadas.com" style="color:#5B2EE0;">mascotadas.com</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

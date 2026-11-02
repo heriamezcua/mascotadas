@@ -5,7 +5,7 @@ const enlace = location.pathname.split("/").pop();
 const NOMBRES_VOZ = { "espana-hombre": "Marco", "espana-mujer": "Laura", "latam-hombre": "Mateo", "latam-mujer": "Samanta" };
 const ESCENA = '<svg class="escena" viewBox="0 0 800 500" role="img" aria-label="Ilustración de la historia" xmlns="http://www.w3.org/2000/svg"><g class="capa-fondo"></g></svg>';
 
-const estado = { historia: null, pagina: 0, leyendo: false, audio: null };
+const estado = { historia: null, pagina: 0, leyendo: false, audio: null, turno: 0 };
 const imagenes = new Map();
 
 function urlFondo(pagina) {
@@ -71,6 +71,7 @@ function audioEn(como) {
 }
 
 function parar() {
+  estado.turno++;
   estado.leyendo = false;
   estado.audio?.pause();
   estado.audio = null;
@@ -86,8 +87,14 @@ function leerPagina() {
     if (!estado.leyendo) return;
     const siguiente = estado.pagina + 1;
     if (siguiente >= estado.historia.paginas.length || !estado.historia.paginas[siguiente].voces.includes(voz)) return parar();
-    irA(siguiente);
-    leerPagina();
+    // Al acabar la voz se cuenta 1,5 segundos en la misma página y luego se pasa a la siguiente.
+    const turno = ++estado.turno;
+    const pagina = estado.pagina;
+    setTimeout(() => {
+      if (estado.turno !== turno || !estado.leyendo || estado.pagina !== pagina) return;
+      irA(siguiente);
+      leerPagina();
+    }, 1500);
   };
   audioEn("sonando");
   audio.play().catch(parar);
@@ -100,6 +107,7 @@ function irA(pagina) {
 }
 
 $("leer").addEventListener("click", () => {
+  estado.turno++;
   if (estado.leyendo) {
     estado.leyendo = false;
     estado.audio?.pause();
