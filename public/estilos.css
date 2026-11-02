@@ -241,7 +241,9 @@ body.en-libro .pie, body.en-cargando .pie, body.en-crear .pie { display: none; }
 @keyframes brillo-sk { to { transform: translateX(100%); } }
 
 /* Crear historia */
-.barra-app { background: #fff; border-bottom: 3px solid var(--tinta); padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
+.barra-app { background: var(--tinta); color: #fff; border-bottom: 3px solid var(--tinta); padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
+.barra-app .fantasma { color: #fff; border-color: #fff; }
+.barra-app .fantasma:hover { background: #fff; color: var(--tinta); }
 .barra-titulo { font-size: 22px; }
 .formulario { display: flex; flex-direction: column; gap: 30px; padding-bottom: 0; }
 fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
