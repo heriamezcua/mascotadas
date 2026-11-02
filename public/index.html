@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mascotadas · La vida secreta de tu mascota</title>
+  <meta name="description" content="Historias divertidas, ilustradas y narradas, protagonizadas por tu perro, tu gato o tu conejo. Listas en un minuto para compartir.">
+  <meta property="og:title" content="Mascotadas · La vida secreta de tu mascota">
+  <meta property="og:description" content="Tu mascota, protagonista de su propia historia ilustrada y narrada.">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://mascotadas.com/">
+  <link rel="icon" href="icono.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="estilos.css">
+  <script src="vendor/supabase.js" defer></script>
+</head>
+<body>
+  <nav class="cabecera">
+    <a class="marca" href="/">Mascotadas</a>
+    <div id="menu-cuenta" class="menu">
+      <button type="button" id="entrar" class="suave">Entrar</button>
+      <button type="button" id="gestionar" class="suave" hidden>Mi suscripción</button>
+      <button type="button" id="salir" class="suave" hidden>Salir</button>
+    </div>
+  </nav>
+
+  <main id="inicio">
+    <header class="portada">
+      <h1>¿Qué hace tu mascota cuando te vas de casa?</h1>
+      <p class="sub">Cuéntanos cómo es y te lo revelamos: una historia ilustrada y narrada que no podrás evitar enseñar a todo el mundo. Lista en un minuto.</p>
+      <a class="principal enlace-boton" href="#crear">Crear su historia</a>
+      <p class="garantia">3 días gratis · Después, 4,99 € al mes · Cancela cuando quieras</p>
+    </header>
+
+    <section id="biblioteca" hidden>
+      <h2>Sus historias</h2>
+      <p id="saldo" class="sub"></p>
+      <ul id="lista"></ul>
+    </section>
+
+    <section class="seccion" aria-labelledby="titulo-ejemplo">
+      <h2 id="titulo-ejemplo">Así es una historia</h2>
+      <article class="pagina" id="ejemplo"></article>
+      <p class="nota-clara">Ejemplo de una página. Cada historia tiene 6 y se escribe nueva para tu mascota.</p>
+    </section>
+
+    <section class="seccion">
+      <h2>Tres pasos</h2>
+      <ol class="pasos">
+        <li><strong>Cuéntanos cómo es.</strong> Su nombre, su carácter y esa manía que solo tú conoces.</li>
+        <li><strong>Escribimos su historia.</strong> Una aventura nueva, con el tono que elijas.</li>
+        <li><strong>Escúchala y compártela.</strong> Con ilustraciones y voz narrada, para que la vea todo el mundo.</li>
+      </ol>
+    </section>
+
+    <section class="seccion" id="crear">
+      <h2>Crea su historia</h2>
+      <form id="formulario" autocomplete="off">
+        <label>¿Cómo se llama?<input name="nombre" maxlength="30" required placeholder="Toby"></label>
+        <label>¿Qué es?
+          <select name="especie"><option value="perro">Un perro</option><option value="gato">Un gato</option><option value="conejo">Un conejo</option></select>
+        </label>
+        <label>¿Cómo es?
+          <select name="personalidad">
+            <option value="muy dramático">Dramático</option><option value="un genio incomprendido">Genio incomprendido</option>
+            <option value="vago profesional">Vago profesional</option><option value="valiente sin motivo">Valiente sin motivo</option>
+            <option value="un cotilla">Cotilla</option><option value="un tragón sin remedio">Tragón sin remedio</option>
+          </select>
+        </label>
+        <label>¿Cuál es su manía?<input name="mania" maxlength="80" required placeholder="robar calcetines y esconderlos en el sofá"></label>
+        <label>¿Qué tono quieres?
+          <select name="tono">
+            <option value="comedia">Comedia</option><option value="película de espías">Espías</option>
+            <option value="detective">Detective</option><option value="epopeya">Epopeya</option><option value="culebrón">Culebrón</option>
+          </select>
+        </label>
+        <fieldset>
+          <legend>Así es en la historia</legend>
+          <div class="fila">
+            <label>Color
+              <select name="color"><option value="#c98a4f">Canela</option><option value="#2e2a2a">Negro</option><option value="#efe6da">Blanco</option><option value="#8d8d99">Gris</option><option value="#e08a3c">Naranja</option></select>
+            </label>
+            <label>Collar
+              <select name="collar"><option value="#d9503f">Rojo</option><option value="#3f7fd9">Azul</option><option value="#3fa37a">Verde</option><option value="#e8a42c">Amarillo</option></select>
+            </label>
+          </div>
+        </fieldset>
+        <button type="submit" class="principal">Crear su historia</button>
+        <p id="error" class="error" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <section class="seccion" id="precios">
+      <h2>Precios</h2>
+      <div class="planes">
+        <article class="plan">
+          <h3>Aventuras</h3>
+          <p class="precio"><strong>Gratis</strong> 3 días</p>
+          <p>3 historias de prueba. Después, 4,99 € al mes con 12 historias nuevas.</p>
+        </article>
+        <article class="plan destacado">
+          <h3>Premium</h3>
+          <p class="precio"><strong>14,99 €</strong> al mes</p>
+          <p>2 historias nuevas cada día.</p>
+        </article>
+      </div>
+      <p class="nota-clara">IVA incluido. Volver a escuchar sus historias no cuenta como historia nueva.</p>
+    </section>
+
+    <section class="seccion" id="dudas">
+      <h2>Preguntas frecuentes</h2>
+      <details><summary>¿Quién escribe las historias?</summary><p>Las escribe una inteligencia artificial y la voz también es sintética. Son ficción y humor: tu mascota no ha robado de verdad nada. Probablemente.</p></details>
+      <details><summary>¿Qué datos pedís?</summary><p>Tu email y lo que nos cuentas de tu mascota. No pedimos fotos. Puedes borrar tu cuenta y sus historias cuando quieras.</p></details>
+      <details><summary>¿Puedo compartirlas?</summary><p>Claro: para eso están. Guárdala en PDF y enséñasela a quien quieras.</p></details>
+      <details><summary>¿Cómo cancelo?</summary><p>Desde «Mi suscripción», en dos clics. Si cancelas durante los 3 días de prueba, no se te cobra nada.</p></details>
+    </section>
+  </main>
+
+  <div id="cargando" class="pantalla" hidden>
+    <div class="luna" aria-hidden="true"></div>
+    <p>Siguiendo su rastro…</p>
+  </div>
+
+  <main id="libro" hidden>
+    <div class="barra">
+      <button type="button" id="volver" class="suave">← Volver</button>
+      <button type="button" id="leer" class="suave">▶ Escuchar</button>
+      <button type="button" id="imprimir" class="suave">Guardar en PDF</button>
+    </div>
+    <p id="aviso-muestra" class="aviso" hidden>Historia de muestra para pruebas.</p>
+    <h2 id="titulo-libro"></h2>
+    <article id="pagina" class="pagina"></article>
+    <div class="paso">
+      <button type="button" id="anterior" class="suave">Anterior</button>
+      <span id="contador"></span>
+      <button type="button" id="siguiente" class="suave">Siguiente</button>
+    </div>
+    <div id="todas" class="solo-impresion"></div>
+  </main>
+
+  <footer class="pie">
+    <p>Mascotadas · Historias de ficción creadas con inteligencia artificial</p>
+    <nav>
+      <a href="/aviso-legal">Aviso legal</a>
+      <a href="/condiciones">Condiciones</a>
+      <a href="/privacidad">Privacidad</a>
+      <button type="button" id="borrar" class="enlace" hidden>Borrar mi cuenta</button>
+    </nav>
+  </footer>
+
+  <dialog id="acceso">
+    <h2>Entra con tu email</h2>
+    <p>Te enviamos un enlace para entrar, sin contraseña.</p>
+    <form id="formulario-acceso" method="dialog">
+      <label>Tu email<input type="email" name="email" required autocomplete="email"></label>
+      <button type="submit" class="principal">Enviarme el enlace</button>
+    </form>
+    <p id="acceso-aviso" role="status" hidden></p>
+    <button type="button" id="cerrar-acceso" class="suave">Cerrar</button>
+  </dialog>
+
+  <dialog id="muro">
+    <h2 id="muro-titulo">Elige su plan</h2>
+    <p id="muro-texto" class="nota-muro"></p>
+    <section class="plan" id="plan-basico">
+      <h3>Aventuras</h3>
+      <p class="precio"><strong>Gratis</strong> 3 días</p>
+      <p>3 historias de prueba. Te pedimos la tarjeta, pero hoy no se cobra nada. Si no cancelas, sigue a 4,99 € al mes con 12 historias nuevas.</p>
+      <button type="button" class="principal" data-plan="prueba">Probar 3 días gratis</button>
+    </section>
+    <section class="plan destacado" id="plan-premium">
+      <h3>Premium</h3>
+      <p class="precio"><strong>14,99 €</strong> al mes</p>
+      <p>2 historias nuevas cada día.</p>
+      <button type="button" class="principal" data-plan="premium">Elegir Premium</button>
+    </section>
+    <label class="aceptar" id="bloque-aceptar">
+      <input type="checkbox" id="empezar-ya">
+      <span>Quiero empezar ya y sé que, al crear mi primera historia, pierdo el derecho a desistir en 14 días.</span>
+    </label>
+    <p id="muro-error" class="error" role="alert" hidden></p>
+    <button type="button" id="cerrar-muro" class="suave">Ahora no</button>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
