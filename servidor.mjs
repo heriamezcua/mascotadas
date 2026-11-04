@@ -42,10 +42,12 @@ const CABECERAS = {
   "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
   "Content-Security-Policy":
     // accounts.google.com: el botón oficial de «Continuar con Google», que solo se carga al abrir la ventana de entrar.
+    // cloudflareinsights.com: las estadísticas de Cloudflare (sin cookies), que Cloudflare añade a cada página.
     "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; " +
-    "script-src 'self' https://accounts.google.com/gsi/client; frame-src https://accounts.google.com/gsi/; " +
+    "script-src 'self' https://accounts.google.com/gsi/client https://static.cloudflareinsights.com; " +
+    "frame-src https://accounts.google.com/gsi/; " +
     "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; " +
-    `connect-src 'self' https://accounts.google.com/gsi/ ${process.env.SUPABASE_URL || ""}; ` +
+    `connect-src 'self' https://accounts.google.com/gsi/ https://cloudflareinsights.com ${process.env.SUPABASE_URL || ""}; ` +
     "object-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'" +
     (process.env.NODE_ENV === "production" ? "; upgrade-insecure-requests" : ""),
 };
