@@ -1,5 +1,4 @@
 import { ilustrar, ponerFondo } from "./ilustracion.js";
-import { empezarQuiz } from "./quiz.js";
 
 const $ = (id) => document.getElementById(id);
 const BORRADOR = "mascotadas.borrador";
@@ -94,7 +93,7 @@ function cargarFondo(historia, pagina) {
           listos.set(clave, url);
           return url;
         }
-        if (r && r.status !== 404) break;
+        if (r && r.status !== 404 && r.status !== 429) break; // 429: demasiadas peticiones, se reintenta luego.
         await esperar(5000);
       }
       fondos.delete(clave);
@@ -199,7 +198,7 @@ function misMascotas(historias) {
 }
 
 // Mini retrato de cada especie, pintado en el mismo estilo que las historias.
-const retratoHtml = (especie) => `<img class="retrato" src="img/especies/${ESPECIES.some(([v]) => v === especie) ? especie : "perro"}.jpg" alt="" width="52" height="52" loading="lazy">`;
+const retratoHtml = (especie) => `<img class="retrato" src="img/especies/${ESPECIES.some(([v]) => v === especie) ? especie : "perro"}.webp" alt="" width="52" height="52" loading="lazy">`;
 
 function retrato(especie) {
   const plantilla = document.createElement("template");
@@ -404,6 +403,9 @@ function volver() {
 /* ---------- Espera y creación ---------- */
 
 // El récord del quiz viaja con la cuenta: se guarda en los datos del usuario de Supabase.
+// El quiz solo hace falta mientras se espera: se descarga la primera vez que se usa.
+const empezarQuiz = () => import("./quiz.js").then((quiz) => quiz.empezarQuiz(opcionesQuiz()));
+
 function opcionesQuiz() {
   const usuario = estado.sesion?.user;
   if (!usuario || !estado.cliente) return {};
@@ -444,7 +446,7 @@ async function crear(mascota) {
   $("lista").hidden = true;
   $("fallo").hidden = true;
   fase("escribir", 15, `Escribiendo la historia de ${mascota.nombre}…`);
-  empezarQuiz(opcionesQuiz());
+  empezarQuiz();
   try {
     const respuesta = await api("/api/historia", { method: "POST", body: JSON.stringify(mascota) });
     const datos = await respuesta.json();
@@ -563,7 +565,7 @@ async function irAPagina(pagina, seguirLeyendo) {
   $("lista").hidden = true;
   $("fallo").hidden = true;
   fase("pintar", 70, `Pintando la página ${pagina + 1}…`);
-  empezarQuiz(opcionesQuiz());
+  empezarQuiz();
   await Promise.race([asegurarFondo(actual, pagina), esperar(ESPERA_MAXIMA)]);
   if (estado.vista !== "cargando" || estado.actual !== actual) return;
   if (!paginaLista(actual, pagina)) {
@@ -1232,9 +1234,15 @@ $("formulario-borrar").addEventListener("submit", async (evento) => {
   location.href = "/";
 });
 
-// Ejemplo de la portada: se escucha sin cuenta.
-const ejemplo = new Audio("img/ejemplo.mp3");
+// Ejemplo de la portada: se escucha sin cuenta, con cualquiera de las 4 voces.
+const ejemplo = new Audio("img/ejemplo-espana-hombre.mp3");
 ejemplo.preload = "none";
+$("ejemplo-voz").addEventListener("change", () => {
+  const sonaba = !ejemplo.paused;
+  ejemplo.pause();
+  ejemplo.src = `img/ejemplo-${$("ejemplo-voz").value}.mp3`;
+  if (sonaba) ejemplo.play();
+});
 const pintarEjemplo = () => {
   const sonando = !ejemplo.paused;
   $("ejemplo-escuchar").querySelector("use").setAttribute("href", sonando ? "#i-pausa" : "#i-play");

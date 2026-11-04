@@ -25,8 +25,9 @@ export async function crearPago(usuario, plan) {
     return `${WEB}/?pago=ok`;
   }
 
-  // Quien ya está suscrito cambia de plan sin pasar otra vez por la caja.
+  // Quien ya está suscrito cambia de plan sin pasar otra vez por la caja; solo se puede subir a Premium.
   if (perfil.stripe_suscripcion && perfil.plan) {
+    if (plan !== "premium" || perfil.plan === "premium") throw Object.assign(new Error("Ya tienes este plan"), { status: 409 });
     const actual = await stripe.subscriptions.retrieve(perfil.stripe_suscripcion);
     await stripe.subscriptions.update(actual.id, {
       items: [{ id: actual.items.data[0].id, price: STRIPE_PRECIO_PREMIUM }],
@@ -81,9 +82,14 @@ export async function recibirEvento(cuerpo, firma) {
   const evento = stripe.webhooks.constructEvent(cuerpo, firma, STRIPE_WEBHOOK_SECRET);
   if (!evento.type.startsWith("customer.subscription.")) return;
 
-  const suscripcion = evento.data.object;
+  // Los avisos de Stripe pueden llegar tarde o desordenados: se consulta el estado actual en vez de fiarse del aviso,
+  // para que uno viejo no devuelva el plan a quien ya canceló.
+  const suscripcion = await stripe.subscriptions.retrieve(evento.data.object.id);
   const usuario = suscripcion.metadata?.usuario;
   if (!usuario) return;
+  // Si el perfil ya apunta a otra suscripción más nueva, este aviso es de una antigua y no debe pisarla.
+  const { stripe_suscripcion: actual, plan: planActual } = await leerPerfil(usuario);
+  if (actual && actual !== suscripcion.id && planActual && !["active", "trialing"].includes(suscripcion.status)) return;
 
   const plan = planDeSuscripcion(suscripcion, STRIPE_PRECIO_PREMIUM);
   await guardarPerfil(usuario, {

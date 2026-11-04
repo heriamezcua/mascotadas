@@ -10,10 +10,10 @@
   <meta property="og:type" content="website">
   <link rel="canonical" href="https://mascotadas.com/">
   <link rel="icon" href="icono.svg?v=2" type="image/svg+xml">
-  <link rel="preload" href="fuentes/baloo-2-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="fuentes/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="estilos.css">
-  <script src="vendor/supabase.js" defer></script>
+  <link rel="preload" href="/v/{{v}}/fuentes/baloo-2-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/v/{{v}}/fuentes/nunito-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/v/{{v}}/estilos.css">
+  <script src="/v/{{v}}/vendor/supabase.js" defer></script>
 </head>
 <body class="en-portada">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -86,15 +86,25 @@
       <div class="hero-ejemplo">
         <div class="bocadillo bota" aria-hidden="true">¡Shhh! Que no se entere…</div>
         <figure class="ejemplo inclinado">
-          <img src="img/ejemplo.jpg" width="577" height="325" alt="Ilustración: Vilma, una gata gris, abre un cofre en un castillo en ruinas y encuentra un cojín de terciopelo.">
+          <img src="/v/{{v}}/img/ejemplo.webp" width="577" height="325" fetchpriority="high" alt="Ilustración: Vilma, una gata gris, abre un cofre en un castillo en ruinas y encuentra un cojín de terciopelo.">
           <figcaption>
             <p class="d ejemplo-titulo">VILMA Y EL TESORO DEL SOFÁ PERDIDO</p>
             <p>Dentro no había oro: había un cojín de terciopelo del siglo dieciséis, suave, blandito, perfecto para arañar. Por fin. Ronroneó como un motor de barca.</p>
             <div class="ejemplo-pie">
-              <button type="button" id="ejemplo-escuchar" class="btn btn-sm btn-menta">
-                <svg width="20" height="20" aria-hidden="true"><use href="#i-play"/></svg>
-                <span>Escuchar</span>
-              </button>
+              <div class="ejemplo-audio">
+                <button type="button" id="ejemplo-escuchar" class="btn btn-sm btn-menta">
+                  <svg width="20" height="20" aria-hidden="true"><use href="#i-play"/></svg>
+                  <span>Escuchar</span>
+                </button>
+                <label for="ejemplo-voz" class="solo-lectores">Voz del narrador del ejemplo</label>
+                <span class="selector selector-pequeno">
+                  <select id="ejemplo-voz" class="sel">
+                    <option value="espana-hombre">Voz: Marco</option><option value="espana-mujer">Voz: Laura</option>
+                    <option value="latam-hombre">Voz: Mateo</option><option value="latam-mujer">Voz: Samanta</option>
+                  </select>
+                  <svg width="16" height="16" aria-hidden="true"><use href="#i-chev"/></svg>
+                </span>
+              </div>
               <span class="etiqueta-pagina">Página 5 de 6</span>
             </div>
           </figcaption>
@@ -613,6 +623,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js"></script>
+  <script type="module" src="/v/{{v}}/app.js"></script>
 </body>
 </html>

@@ -1,10 +1,6 @@
 /* Fuentes servidas desde la propia web: Baloo 2 para titulares y Nunito para el texto. */
-@font-face { font-family: "Baloo 2"; font-weight: 700; font-display: swap; src: url("fuentes/baloo-2-latin-700-normal.woff2") format("woff2"); }
-@font-face { font-family: "Baloo 2"; font-weight: 800; font-display: swap; src: url("fuentes/baloo-2-latin-800-normal.woff2") format("woff2"); }
-@font-face { font-family: "Nunito"; font-weight: 600; font-display: swap; src: url("fuentes/nunito-latin-600-normal.woff2") format("woff2"); }
-@font-face { font-family: "Nunito"; font-weight: 700; font-display: swap; src: url("fuentes/nunito-latin-700-normal.woff2") format("woff2"); }
-@font-face { font-family: "Nunito"; font-weight: 800; font-display: swap; src: url("fuentes/nunito-latin-800-normal.woff2") format("woff2"); }
-@font-face { font-family: "Nunito"; font-weight: 900; font-display: swap; src: url("fuentes/nunito-latin-900-normal.woff2") format("woff2"); }
+@font-face { font-family: "Baloo 2"; font-weight: 400 800; font-display: swap; src: url("fuentes/baloo-2-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Nunito"; font-weight: 200 1000; font-display: swap; src: url("fuentes/nunito-latin-wght-normal.woff2") format("woff2"); }
 
 :root {
   --tinta: #2b1840;
@@ -127,7 +123,11 @@ body:not(.en-portada) .cabecera .btn { border-color: #fff; box-shadow: 0 4px 0 v
 .ejemplo img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-bottom: 4px solid var(--tinta); }
 .ejemplo figcaption { padding: 20px 24px 22px; display: flex; flex-direction: column; gap: 14px; font-size: 19px; line-height: 1.55; }
 .ejemplo-titulo { font-size: 15px; font-weight: 700; color: var(--morado); letter-spacing: .3px; }
-.ejemplo-pie { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ejemplo-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.ejemplo-audio { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.selector-pequeno .sel { width: auto; min-height: 46px; font-size: 15px; border-radius: 14px; padding-right: 32px; }
+.selector.selector-pequeno { display: inline-block; width: auto; } /* Gana a .selector (220 px en escritorio), que va más abajo. */
+.selector-pequeno svg { top: 15px; right: 10px; }
 .etiqueta-pagina { font-weight: 900; font-size: 15px; background: var(--cielo); border: 2px solid var(--tinta); border-radius: 999px; padding: 6px 12px; }
 .inclinado { transform: rotate(-1.5deg); transition: transform .3s ease; }
 .inclinado:hover { transform: rotate(0); }

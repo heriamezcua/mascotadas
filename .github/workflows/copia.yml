@@ -1,0 +1,53 @@
+# Copia de seguridad diaria de la base de datos (cuentas, suscripciones e historias).
+# Se guarda cifrada como artefacto de esta ejecución durante 30 días: Actions → «Copia de seguridad» → la ejecución → Artifacts.
+#
+# Para restaurarla:
+#   1. Descargar el artefacto y descomprimirlo.
+#   2. gpg --decrypt mascotadas-AAAA-MM-DD.sql.gz.gpg | gunzip > copia.sql   (pide la contraseña COPIA_CLAVE)
+#   3. psql "<cadena de conexión de Supabase>" -f copia.sql   (mejor en un proyecto nuevo y vacío)
+#
+# Secretos del repositorio (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL: cadena de conexión «Session pooler» de Supabase, con la contraseña de la base de datos.
+#   COPIA_CLAVE: contraseña larga con la que se cifra la copia. Sin ella no se puede abrir.
+
+name: Copia de seguridad
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # 3:00 en invierno y 4:00 en verano, hora de Madrid.
+  workflow_dispatch: # Para lanzarla a mano desde la pestaña Actions.
+
+permissions:
+  contents: read
+
+jobs:
+  copia:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Copiar y cifrar
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          COPIA_CLAVE: ${{ secrets.COPIA_CLAVE }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_DB_URL" && test -n "$COPIA_CLAVE"
+          archivo="mascotadas-$(date -u +%F).sql.gz.gpg"
+          # pg_dump de la versión 17 sirve para la base de datos de Supabase (15 o 17).
+          # Solo los esquemas con datos de la web: public (perfiles e historias) y auth (las cuentas).
+          docker run --rm -e SUPABASE_DB_URL postgres:17 \
+            sh -c 'pg_dump "$SUPABASE_DB_URL" --schema=public --schema=auth --no-owner --no-privileges' \
+            | gzip -9 \
+            | gpg --batch --yes --pinentry-mode loopback --symmetric --cipher-algo AES256 --passphrase-fd 3 3<<<"$COPIA_CLAVE" -o "$archivo"
+          # Una copia casi vacía significa que algo ha fallado aunque pg_dump no diera error.
+          test "$(stat -c %s "$archivo")" -gt 5000
+          echo "ARCHIVO=$archivo" >> "$GITHUB_ENV"
+          ls -lh "$archivo"
+
+      - name: Guardar
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARCHIVO }}
+          path: ${{ env.ARCHIVO }}
+          retention-days: 30
+          if-no-files-found: error

@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import sharp from "sharp";
 
 // Sin Supabase configurado todo vive en memoria, con un único usuario: sirve para desarrollar y probar.
 export const local = !process.env.SUPABASE_URL;
@@ -117,9 +118,25 @@ export async function audiosDe(usuario) {
   }
 }
 export const guardarAudio = (usuario, huella, audio) => guardarArchivo("audio", `${usuario}/${huella}.mp3`, audio, "audio/mpeg");
-export const leerFondo = (usuario, historia, pagina) => leerArchivo("fondos", `${usuario}/${historia}-${pagina}.jpg`);
-export const guardarFondo = (usuario, historia, pagina, imagen) =>
-  guardarArchivo("fondos", `${usuario}/${historia}-${pagina}.jpg`, imagen, "image/jpeg");
+// Los fondos se guardan en WebP: pesan unas 6 veces menos que el JPEG de la IA y se ven igual.
+const aWebp = (imagen) => sharp(imagen).webp({ quality: 80, effort: 5 }).toBuffer();
+
+export async function leerFondo(usuario, historia, pagina) {
+  const ruta = `${usuario}/${historia}-${pagina}`;
+  const webp = await leerArchivo("fondos", `${ruta}.webp`);
+  if (webp) return webp;
+  // Las historias de antes del cambio están en JPEG: se pasan a WebP la primera vez que se leen.
+  const jpg = await leerArchivo("fondos", `${ruta}.jpg`);
+  if (!jpg) return null;
+  const convertida = await aWebp(jpg);
+  guardarArchivo("fondos", `${ruta}.webp`, convertida, "image/webp").catch((error) => console.error("Fondo a WebP:", error.message));
+  return convertida;
+}
+export const guardarFondo = async (usuario, historia, pagina, imagen) =>
+  guardarArchivo("fondos", `${usuario}/${historia}-${pagina}.webp`, await aWebp(imagen), "image/webp");
+
+// Para las vistas previas de los enlaces (WhatsApp, Instagram...), que no siempre entienden WebP.
+export const fondoEnJpeg = (imagen) => sharp(imagen).jpeg({ quality: 82 }).toBuffer();
 
 export const leerFicha = (usuario, clave) => leerArchivo("fondos", `${usuario}/ficha-${clave}.jpg`);
 export const guardarFicha = (usuario, clave, imagen) =>

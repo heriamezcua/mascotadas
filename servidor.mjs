@@ -1,7 +1,8 @@
 import { createServer } from "node:http";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { brotliCompressSync, constants as zlib } from "node:zlib";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,32 +10,65 @@ const raiz = fileURLToPath(new URL(".", import.meta.url));
 if (existsSync(join(raiz, ".env.local"))) process.loadEnvFile(join(raiz, ".env.local"));
 
 const { escribirHistoria, hayIA } = await import("./historias.mjs");
-const { narrar, hayVoz, vocesGuardadas, audioGuardado } = await import("./voz.mjs");
+const { narrar, hayVoz, vocesGuardadas, audioGuardado, VOCES } = await import("./voz.mjs");
 const { pintarFondos, pintarFicha, pintarEscena, hayImagenes, claveFicha, ESPECIES } = await import("./fondos.mjs");
 const datos = await import("./datos.mjs");
 const pagos = await import("./pagos.mjs");
 const { inicioDelPeriodo, restantes } = await import("./planes.mjs");
 
 const PUERTO = Number(process.env.PORT || 4173);
+// Los archivos de la web se piden con la versión en la ruta (/v/<versión>/app.js): cambia en cada publicación,
+// así el navegador y Cloudflare pueden guardarlos un año sin servir nunca uno viejo.
+const VERSION = (process.env.RAILWAY_GIT_COMMIT_SHA || randomUUID()).slice(0, 8);
+const PRODUCCION = process.env.NODE_ENV === "production";
+const COMPRIMIBLES = new Set([".html", ".css", ".js", ".svg", ".txt", ".xml"]);
+const estaticos = new Map(); // En producción los archivos no cambian: se leen del disco una sola vez.
 const ANFITRION = process.env.PORT ? "0.0.0.0" : "127.0.0.1";
 const TIPOS = {
   ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".svg": "image/svg+xml", ".txt": "text/plain; charset=utf-8", ".xml": "application/xml",
-  ".jpg": "image/jpeg", ".mp3": "audio/mpeg", ".woff2": "font/woff2",
+  ".jpg": "image/jpeg", ".webp": "image/webp", ".mp3": "audio/mpeg", ".woff2": "font/woff2",
 };
 const CAMPOS = { nombre: 30, especie: 10, personalidad: 30, mania: 80, tono: 20 };
 const COLORES = ["color", "collar"];
 const CABECERAS = {
   "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+  // La web no usa cámara, micrófono, ubicación ni pagos del navegador: nadie podrá pedirlos desde ella.
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()",
+  // Aísla la pestaña de otras webs; «allow-popups» deja abrir la ventana de Google para entrar.
+  "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
   "Content-Security-Policy":
     // accounts.google.com: el botón oficial de «Continuar con Google», que solo se carga al abrir la ventana de entrar.
     "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; " +
     "script-src 'self' https://accounts.google.com/gsi/client; frame-src https://accounts.google.com/gsi/; " +
     "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; " +
-    `connect-src 'self' https://accounts.google.com/gsi/ ${process.env.SUPABASE_URL || ""}; frame-ancestors 'none'; base-uri 'self'`,
+    `connect-src 'self' https://accounts.google.com/gsi/ ${process.env.SUPABASE_URL || ""}; ` +
+    "object-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'" +
+    (process.env.NODE_ENV === "production" ? "; upgrade-insecure-requests" : ""),
 };
+
+// Límite de peticiones por IP y minuto, para frenar a quien intente forzar códigos, gastar la IA o tumbar la web.
+// Las acciones caras tienen su propio límite, más bajo.
+const LIMITES = { general: 300, caras: 20 };
+const CARAS = new Set(["POST /api/historia", "POST /api/repintar", "POST /api/voz", "POST /api/pago", "POST /api/portal", "POST /api/compartir", "DELETE /api/cuenta"]);
+const contadores = new Map();
+setInterval(() => contadores.clear(), 60000).unref();
+
+function superaLimite(req, tipo) {
+  // Cloudflare manda la IP real del visitante; si se entra sin pasar por Cloudflare, vale la de la conexión.
+  const ip = req.headers["cf-connecting-ip"] || req.headers["x-forwarded-for"]?.split(",")[0].trim() || req.socket.remoteAddress;
+  const clave = `${tipo}|${ip}`;
+  const veces = (contadores.get(clave) ?? 0) + 1;
+  contadores.set(clave, veces);
+  return veces > LIMITES[tipo];
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const esPagina = (pagina) => Number.isInteger(pagina) && pagina >= 0 && pagina <= 9;
+const esVoz = (voz) => typeof voz === "string" && Object.hasOwn(VOCES, voz);
 
 const pases = new Map(); // Pases de audio: el reproductor no puede mandar la sesión.
 setInterval(() => {
@@ -128,8 +162,9 @@ async function leerCrudo(req, maximo = 2000) {
 
 const leerCuerpo = async (req) => JSON.parse((await leerCrudo(req)).toString() || "{}");
 
+// Las respuestas de la API llevan datos de la cuenta: que no las guarde ninguna caché.
 const responder = (res, codigo, datosRespuesta) => {
-  res.writeHead(codigo, { "Content-Type": "application/json; charset=utf-8", ...CABECERAS });
+  res.writeHead(codigo, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...CABECERAS });
   res.end(JSON.stringify(datosRespuesta));
 };
 
@@ -179,6 +214,7 @@ const rutas = {
   // Pinta en el momento una página que falló, mientras quien lee espera con el quiz.
   "POST /api/repintar": async (req, res, usuario) => {
     const { historia: id, pagina } = await leerCuerpo(req);
+    if (!UUID.test(id) || !esPagina(pagina)) return responder(res, 400, { error: "No válido" });
     const historia = await datos.leerHistoria(id, usuario.id);
     if (!historia?.paginas[pagina]?.fondo || !hayImagenes()) return responder(res, 404, { error: "No existe" });
     if (await datos.leerFondo(usuario.id, id, pagina)) {
@@ -193,7 +229,7 @@ const rutas = {
     const consulta = new URL(req.url, "http://localhost").searchParams;
     const historia = consulta.get("historia") ?? "";
     const pagina = Number(consulta.get("pagina"));
-    if (!/^[0-9a-f-]{36}$/i.test(historia) || !Number.isInteger(pagina) || pagina < 0 || pagina > 9) {
+    if (!UUID.test(historia) || !esPagina(pagina)) {
       return responder(res, 400, { error: "No válido" });
     }
     const imagen = await datos.leerFondo(usuario.id, historia, pagina);
@@ -201,7 +237,7 @@ const rutas = {
       const fallido = (await datos.leerHistoria(historia, usuario.id))?.paginas[pagina]?.imagen === false;
       return responder(res, fallido ? 410 : 404, { error: "No existe" });
     }
-    res.writeHead(200, { "Content-Type": "image/jpeg", "Cache-Control": "private, max-age=604800", ...CABECERAS });
+    res.writeHead(200, { "Content-Type": "image/webp", "Cache-Control": "private, max-age=604800", ...CABECERAS });
     res.end(imagen);
   },
 
@@ -209,6 +245,7 @@ const rutas = {
   // Devuelve un pase de un rato para que el reproductor del navegador pida el audio sin cabecera de sesión.
   "POST /api/voz": async (req, res, usuario) => {
     const { historia: id, pagina, voz } = await leerCuerpo(req);
+    if (!UUID.test(id) || !esPagina(pagina) || !esVoz(voz)) return responder(res, 400, { error: "No válido" });
     const { plan } = await datos.leerPerfil(usuario.id);
     const historia = plan ? await datos.leerHistoria(id, usuario.id) : null;
     const texto = historia?.paginas[pagina]?.texto;
@@ -241,7 +278,12 @@ const rutas = {
     const { plan, empezarYa } = await leerCuerpo(req);
     if (!["prueba", "premium"].includes(plan)) return responder(res, 400, { error: "Plan no válido" });
     if (empezarYa !== true) return responder(res, 400, { error: "Falta aceptar el inicio inmediato" });
-    responder(res, 200, { url: await pagos.crearPago(usuario, plan) });
+    try {
+      responder(res, 200, { url: await pagos.crearPago(usuario, plan) });
+    } catch (error) {
+      if (error.status !== 409) throw error;
+      responder(res, 409, { error: error.message });
+    }
   },
 
   "POST /api/portal": async (req, res, usuario) => {
@@ -252,6 +294,7 @@ const rutas = {
   // Compartir: solo el dueño crea o quita el enlace público de su historia.
   "POST /api/compartir": async (req, res, usuario) => {
     const { historia } = await leerCuerpo(req);
+    if (!UUID.test(historia)) return responder(res, 400, { error: "No válido" });
     const enlace = await datos.compartirHistoria(historia, usuario.id);
     if (!enlace) return responder(res, 404, { error: "No existe" });
     responder(res, 200, { enlace });
@@ -259,6 +302,7 @@ const rutas = {
 
   "DELETE /api/compartir": async (req, res, usuario) => {
     const { historia } = await leerCuerpo(req);
+    if (!UUID.test(historia)) return responder(res, 400, { error: "No válido" });
     await datos.dejarDeCompartir(historia, usuario.id);
     responder(res, 200, { ok: true });
   },
@@ -280,15 +324,16 @@ const rutas = {
     const pagina = paginaDe(req, historia);
     const imagen = pagina === null ? null : await datos.leerFondo(historia.usuario, historia.id, pagina);
     if (!imagen) return responder(res, 404, { error: "No existe" });
-    res.writeHead(200, { "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=86400", ...CABECERAS });
-    res.end(imagen);
+    const enJpeg = new URL(req.url, "http://localhost").searchParams.get("formato") === "jpg";
+    res.writeHead(200, { "Content-Type": enJpeg ? "image/jpeg" : "image/webp", "Cache-Control": "public, max-age=86400", ...CABECERAS });
+    res.end(enJpeg ? await datos.fondoEnJpeg(imagen) : imagen);
   },
 
   "GET /api/publica/voz": async (req, res) => {
     const historia = await compartidaDe(req);
     const pagina = paginaDe(req, historia);
     const voz = new URL(req.url, "http://localhost").searchParams.get("voz");
-    const audio = pagina === null ? null : await audioGuardado(historia.usuario, historia.paginas[pagina].texto, voz);
+    const audio = pagina === null || !esVoz(voz) ? null : await audioGuardado(historia.usuario, historia.paginas[pagina].texto, voz);
     if (!audio) return responder(res, 404, { error: "No existe" });
     res.writeHead(200, { "Content-Type": "audio/mpeg", "Content-Length": audio.length, "Cache-Control": "public, max-age=86400", ...CABECERAS });
     res.end(audio);
@@ -321,15 +366,42 @@ const escaparHtml = (texto) => String(texto).replace(/[&<>"']/g, (c) => `&#${c.c
 async function servirCompartida(res, enlace) {
   const historia = ENLACE.test(enlace) ? await datos.leerCompartida(enlace).catch(() => null) : null;
   let html = await readFile(join(raiz, "public", "historia.html"), "utf8");
+  html = html.replaceAll("{{v}}", VERSION);
   const titulo = historia ? `${historia.titulo} · Mascotadas` : "Historia no disponible · Mascotadas";
   html = html
     .replaceAll("{{titulo}}", escaparHtml(titulo))
-    .replaceAll("{{imagen}}", historia ? `https://mascotadas.com/api/publica/fondo?e=${enlace}&amp;pagina=0` : "https://mascotadas.com/img/ejemplo.jpg");
+    .replaceAll("{{imagen}}", historia ? `https://mascotadas.com/api/publica/fondo?e=${enlace}&amp;pagina=0&amp;formato=jpg` : "https://mascotadas.com/img/ejemplo.jpg");
   res.writeHead(historia ? 200 : 404, { "Content-Type": TIPOS[".html"], ...CABECERAS });
   res.end(html);
 }
 
+// Lee un archivo de public (o la página .html del mismo nombre) con su ETag, para que el navegador pueda preguntar
+// «¿ha cambiado?» y recibir un 304 sin contenido si no.
+async function leerEstatico(relativa) {
+  if (estaticos.has(relativa)) return estaticos.get(relativa);
+  for (const candidato of [relativa, `${relativa}.html`]) {
+    let archivo;
+    try {
+      archivo = await readFile(join(raiz, "public", candidato));
+    } catch {
+      continue;
+    }
+    const tipo = extname(candidato);
+    if (tipo === ".html") archivo = Buffer.from(archivo.toString("utf8").replaceAll("{{v}}", VERSION));
+    const etiqueta = `"${createHash("sha1").update(archivo).digest("base64url").slice(0, 20)}"`;
+    const estatico = { archivo, tipo, etiqueta };
+    if (PRODUCCION) estaticos.set(relativa, estatico);
+    return estatico;
+  }
+  return null;
+}
+
 async function atenderApi(req, res, ruta) {
+  const clave = `${req.method} ${ruta}`;
+  if (ruta !== "/api/stripe" && (superaLimite(req, "general") || (CARAS.has(clave) && superaLimite(req, "caras")))) {
+    res.setHeader("Retry-After", "60");
+    return responder(res, 429, { error: "Demasiadas peticiones seguidas. Espera un minuto y vuelve a intentarlo." });
+  }
   if (ruta === "/api/stripe") {
     try {
       await pagos.recibirEvento(await leerCrudo(req, 1_000_000), req.headers["stripe-signature"]);
@@ -340,7 +412,6 @@ async function atenderApi(req, res, ruta) {
     }
   }
 
-  const clave = `${req.method} ${ruta}`;
   const accion = rutas[clave];
   if (!accion) return responder(res, 404, { error: "No existe" });
   try {
@@ -353,23 +424,36 @@ async function atenderApi(req, res, ruta) {
   }
 }
 
-createServer(async (req, res) => {
+// Un fallo inesperado se apunta en el registro en vez de tumbar el servidor.
+process.on("unhandledRejection", (error) => console.error("Sin capturar:", error?.message ?? error));
+
+const servidor = createServer(async (req, res) => {
   const ruta = new URL(req.url, "http://localhost").pathname;
   if (ruta.startsWith("/api/")) return atenderApi(req, res, ruta);
   if (ruta.startsWith("/h/")) return servirCompartida(res, ruta.slice(3));
 
-  const relativa = normalize(ruta === "/" ? "index.html" : ruta.slice(1));
+  const versionada = /^\/v\/[\w-]+\//.test(ruta);
+  const limpia = versionada ? ruta.replace(/^\/v\/[\w-]+/, "") : ruta;
+  const relativa = normalize(limpia === "/" ? "index.html" : limpia.slice(1));
   if (relativa.startsWith("..")) return responder(res, 404, { error: "No existe" });
-  for (const candidato of [relativa, `${relativa}.html`]) {
-    try {
-      const archivo = await readFile(join(raiz, "public", candidato));
-      res.writeHead(200, { "Content-Type": TIPOS[extname(candidato)] || "application/octet-stream", ...CABECERAS });
-      return res.end(archivo);
-    } catch {
-      // Prueba el siguiente.
-    }
+  const estatico = await leerEstatico(relativa);
+  if (!estatico) return responder(res, 404, { error: "No existe" });
+  const { archivo, tipo, etiqueta } = estatico;
+  const brotli = COMPRIMIBLES.has(tipo) && /\bbr\b/.test(req.headers["accept-encoding"] || "");
+  // Fuera de producción no se guarda nada, para ver cada cambio al recargar.
+  const cache = !PRODUCCION || tipo === ".html" ? "no-cache" : versionada ? "public, max-age=31536000, immutable" : "public, max-age=3600";
+  if (req.headers["if-none-match"] === etiqueta) {
+    res.writeHead(304, { ETag: etiqueta, "Cache-Control": cache });
+    return res.end();
   }
-  responder(res, 404, { error: "No existe" });
+  const extra = COMPRIMIBLES.has(tipo) ? { Vary: "Accept-Encoding", ...(brotli && { "Content-Encoding": "br" }) } : {};
+  res.writeHead(200, { "Content-Type": TIPOS[tipo] || "application/octet-stream", "Cache-Control": cache, ETag: etiqueta, ...extra, ...CABECERAS });
+  // El texto se comprime con Brotli (pesa unas 4 veces menos); en producción, al máximo y una sola vez por archivo.
+  const calidad = PRODUCCION ? 11 : 5;
+  res.end(brotli ? (estatico.br ??= brotliCompressSync(archivo, { params: { [zlib.BROTLI_PARAM_QUALITY]: calidad } })) : archivo);
 }).listen(PUERTO, ANFITRION, () => {
   console.log(`Mascotadas en http://localhost:${PUERTO} (${datos.local ? "local" : "producción"}, ${hayIA() ? "con IA" : "historias de muestra"})`);
 });
+// Quien envía una petición muy despacio no puede tener conexiones abiertas indefinidamente.
+servidor.headersTimeout = 10000;
+servidor.requestTimeout = 15000;
