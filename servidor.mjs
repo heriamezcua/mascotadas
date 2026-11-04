@@ -194,10 +194,11 @@ const responder = (res, codigo, datosRespuesta) => {
   res.end(JSON.stringify(datosRespuesta));
 };
 
+// quedan: historias del plan en este periodo; extra: las de packs que siguen valiendo.
 async function cuentaDe(usuario) {
   const perfil = await datos.leerPerfil(usuario.id);
   const usados = perfil.plan ? await datos.contarHistorias(usuario.id, inicioDelPeriodo(perfil)) : 0;
-  return { perfil, quedan: restantes(perfil, usados) };
+  return { perfil, quedan: restantes(perfil, usados), extra: datos.extraDe(perfil) };
 }
 
 const rutas = {
@@ -212,9 +213,19 @@ const rutas = {
   }),
 
   "GET /api/yo": async (req, res, usuario) => {
-    const { perfil, quedan } = await cuentaDe(usuario);
+    const { perfil, quedan, extra } = await cuentaDe(usuario);
     const historias = await datos.listarHistorias(usuario.id);
-    responder(res, 200, { email: usuario.email, plan: perfil.plan ?? null, quedan, historias });
+    responder(res, 200, {
+      email: usuario.email,
+      plan: perfil.plan ?? null,
+      anual: Boolean(perfil.anual),
+      quedan,
+      extra,
+      extraCaducan: extra ? perfil.extra_caducan : null,
+      cliente: Boolean(perfil.stripe_customer), // Tiene facturas que ver en el portal de Stripe.
+      pruebaUsada: Boolean(perfil.prueba_usada),
+      historias,
+    });
   },
 
   "POST /api/historia": async (req, res, usuario) => {
@@ -223,16 +234,24 @@ const rutas = {
     if (!mascota) return responder(res, 400, { error: "Faltan el nombre o su manía" });
 
     generando.add(usuario.id);
+    let dePack = false;
     try {
       const { perfil, quedan } = await cuentaDe(usuario);
-      if (quedan === 0) return responder(res, 402, { error: "limite", plan: perfil.plan ?? null });
+      // Primero se gastan las del plan; cuando se acaban, las de los packs (se descuenta antes de escribir).
+      if (quedan === 0) {
+        dePack = await datos.gastarExtra(usuario.id);
+        if (!dePack) return responder(res, 402, { error: "limite", plan: perfil.plan ?? null });
+      }
       const { titulo, paginas, modo } = await escribirHistoria(mascota);
       const conFondo = paginas.map((pagina) => ({ ...pagina, imagen: hayImagenes() && pagina.fondo ? "escena" : false }));
-      const historia = await datos.crearHistoria(usuario.id, { titulo, paginas: conFondo, modo, mascota });
+      const historia = await datos.crearHistoria(usuario.id, { titulo, paginas: conFondo, modo, mascota, de_pack: dePack });
+      dePack = false; // Ya está creada: la historia del pack está bien gastada.
       // Los fondos tardan minutos: la historia se abre ya y cada fondo aparece en cuanto está pintado.
       if (hayImagenes()) enMarcha(pintarEnSegundoPlano(usuario.id, historia));
       responder(res, 200, historia);
     } finally {
+      // Si algo falló después de descontarla, se devuelve.
+      if (dePack) await datos.devolverExtra(usuario.id).catch((error) => console.error("Devolver historia de pack:", error.message));
       generando.delete(usuario.id);
     }
   },
@@ -272,9 +291,10 @@ const rutas = {
   "POST /api/voz": async (req, res, usuario) => {
     const { historia: id, pagina, voz } = await leerCuerpo(req);
     if (!UUID.test(id) || !esPagina(pagina) || !esVoz(voz)) return responder(res, 400, { error: "No válido" });
+    // Se narran las historias de quien tiene plan, y las de pack siempre (ya están pagadas).
     const { plan } = await datos.leerPerfil(usuario.id);
-    const historia = plan ? await datos.leerHistoria(id, usuario.id) : null;
-    const texto = historia?.paginas[pagina]?.texto;
+    const historia = await datos.leerHistoria(id, usuario.id);
+    const texto = plan || historia?.de_pack ? historia?.paginas[pagina]?.texto : null;
     if (!texto) return responder(res, 404, { error: "No existe" });
     const pase = randomUUID();
     pases.set(pase, { usuario: usuario.id, texto, voz, caduca: Date.now() + 10 * 60000 });
@@ -301,11 +321,13 @@ const rutas = {
   },
 
   "POST /api/pago": async (req, res, usuario) => {
-    const { plan, empezarYa } = await leerCuerpo(req);
-    if (!["prueba", "premium"].includes(plan)) return responder(res, 400, { error: "Plan no válido" });
+    const { producto, empezarYa } = await leerCuerpo(req);
+    if (!Object.hasOwn(pagos.PRODUCTOS, producto) || !pagos.PRODUCTOS[producto].precio && !pagos.simulado) {
+      return responder(res, 400, { error: "Producto no válido" });
+    }
     if (empezarYa !== true) return responder(res, 400, { error: "Falta aceptar el inicio inmediato" });
     try {
-      responder(res, 200, { url: await pagos.crearPago(usuario, plan) });
+      responder(res, 200, { url: await pagos.crearPago(usuario, producto) });
     } catch (error) {
       if (error.status !== 409) throw error;
       responder(res, 409, { error: error.message });

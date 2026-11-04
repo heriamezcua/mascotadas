@@ -62,7 +62,18 @@ function pintarIdeas() {
   }));
 }
 const LIMITES = { prueba: 3, basico: 8, premium: 1 };
-const NOMBRES_PLAN = { prueba: "Prueba gratis", basico: "Mensual", premium: "Premium" };
+const NOMBRES_PLAN = { prueba: "Prueba gratis", basico: "Básico", premium: "Premium" };
+// Lo que se puede comprar (igual que en pagos.mjs): nivel y anual deciden a qué plan se puede cambiar.
+const PRODUCTOS = {
+  basico: { nivel: 1, anual: false, precio: 4.99 },
+  basico_anual: { nivel: 1, anual: true, precio: 49.99 },
+  premium: { nivel: 2, anual: false, precio: 19.99 },
+  premium_anual: { nivel: 2, anual: true, precio: 199.99 },
+  pack_1: { historias: 1, precio: 2.99 },
+  pack_5: { historias: 5, precio: 9.99 },
+  pack_15: { historias: 15, precio: 24.99 },
+};
+const historiasDePack = (n) => (n === 1 ? "1 historia de pack" : `${n} historias de packs`);
 const TICK = '<span class="marca-ok" aria-hidden="true"><svg><use href="#i-tick"/></svg></span>';
 
 const etiqueta = (lista, valor) => lista.find(([v]) => v === valor)?.[1] ?? valor;
@@ -241,9 +252,16 @@ function pintarMascotas(historias) {
 }
 
 function pintarSaldo() {
-  const { plan, quedan } = estado.cuenta ?? {};
-  $("saldo").hidden = !plan;
-  if (!plan) return;
+  const { plan, quedan, extra } = estado.cuenta ?? {};
+  $("saldo").hidden = !plan && !extra;
+  $("saldo-barra").hidden = !plan;
+  if (!plan) {
+    if (!extra) return;
+    $("t-saldo").textContent = `Le ${extra === 1 ? "queda 1 historia" : `quedan ${extra} historias`}`;
+    $("saldo-de").textContent = "de packs";
+    $("saldo-plan").textContent = "Sin plan ·";
+    return;
+  }
   const limite = LIMITES[plan];
   $("t-saldo").textContent = plan === "premium"
     ? quedan ? "Hoy le queda 1 historia nueva" : "Hoy ya ha estrenado su historia"
@@ -256,7 +274,7 @@ function pintarSaldo() {
     if (i >= limite - quedan) trozo.className = "libre";
     return trozo;
   }));
-  $("saldo-plan").textContent = `Plan ${NOMBRES_PLAN[plan]} ·`;
+  $("saldo-plan").textContent = `Plan ${NOMBRES_PLAN[plan]}${extra ? ` · y ${historiasDePack(extra)}` : ""} ·`;
 }
 
 // Las miniaturas cargan su imagen solo al aparecer en pantalla; luego sirve también al abrir la historia.
@@ -374,12 +392,14 @@ function pintarResumen() {
 }
 
 function pintarUsara() {
-  const { plan, quedan } = estado.cuenta ?? {};
-  $("usara").textContent = !plan
-    ? "3 días gratis · luego 4,99 €/mes"
-    : plan === "premium"
-      ? "Usará su historia nueva de hoy"
-      : quedan ? `Usará 1 de sus ${quedan} historias nuevas` : "Ya ha usado sus historias nuevas";
+  const { plan, quedan, extra, pruebaUsada } = estado.cuenta ?? {};
+  $("usara").textContent = plan && quedan
+    ? plan === "premium" ? "Usará su historia nueva de hoy" : `Usará 1 de sus ${quedan} historias nuevas`
+    : extra
+      ? `Usará 1 de sus ${historiasDePack(extra)}`
+      : plan
+        ? "Ya ha usado sus historias nuevas"
+        : pruebaUsada ? "Elija un plan o un pack de historias" : "3 días gratis · luego 4,99 €/mes";
 }
 
 function marcarError(campo, hay) {
@@ -479,7 +499,7 @@ function pedirHistoria(mascota) {
     guardarBorrador(mascota);
     return pedirAcceso();
   }
-  if (!estado.cuenta?.quedan) {
+  if (!estado.cuenta?.quedan && !estado.cuenta?.extra) {
     guardarBorrador(mascota);
     return estado.cuenta?.plan ? abrirAgotadas() : abrirMuro();
   }
@@ -495,10 +515,25 @@ function continuar() {
 }
 
 // Stripe avisa al servidor por su cuenta: el plan puede tardar unos segundos en llegar.
+// Al volver de pagar, Stripe avisa al servidor unos segundos después: se espera a ver el cambio en la cuenta.
 async function esperarPlan() {
-  for (let intento = 0; intento < 15 && !estado.cuenta?.plan; intento++) {
+  const antes = leerAntesDePagar();
+  const cambiado = () => estado.cuenta && (antes
+    ? estado.cuenta.plan !== antes.plan || estado.cuenta.anual !== antes.anual || estado.cuenta.extra > antes.extra
+    : estado.cuenta.plan);
+  for (let intento = 0; intento < 15 && !cambiado(); intento++) {
     await esperar(1000);
     await refrescar();
+  }
+}
+
+function leerAntesDePagar() {
+  try {
+    const antes = JSON.parse(sessionStorage.getItem("mascotadas.pago"));
+    sessionStorage.removeItem("mascotadas.pago");
+    return antes;
+  } catch {
+    return null;
   }
 }
 
@@ -977,46 +1012,71 @@ async function enviarCodigo(email) {
   return null;
 }
 
-function pintarPago() {
-  const plan = $("muro").querySelector("input[name=plan]:checked")?.value;
-  const mejora = Boolean(estado.cuenta?.plan);
-  const dentroDe = (dias) => fecha(new Date(Date.now() + dias * 86400000));
-  $("muro").querySelector(".resumen-pago").hidden = mejora;
-  if (plan === "premium") {
-    $("hoy-paga").textContent = euros(19.99);
-    $("cobro-cuando").textContent = `Siguiente cobro, ${dentroDe(30)}`;
-    $("cobro-cuanto").textContent = euros(19.99);
-    $("pagar").textContent = mejora ? "Pasar a Premium" : "Elegir Premium";
-  } else {
-    $("hoy-paga").textContent = euros(0);
-    $("cobro-cuando").textContent = `Primer cobro, ${dentroDe(3)}`;
-    $("cobro-cuanto").textContent = euros(4.99);
-    $("pagar").textContent = "Probar 3 días gratis";
-  }
+// A qué se puede cambiar quien ya tiene plan: solo a uno más alto, o del mismo al anual (como en pagos.mjs).
+function puedeComprar(nombre) {
+  const nuevo = PRODUCTOS[nombre];
+  const { plan, anual } = estado.cuenta ?? {};
+  if (nuevo.historias || !plan) return true;
+  const actual = { nivel: plan === "premium" ? 2 : 1, anual };
+  return nuevo.nivel > actual.nivel || (nuevo.nivel === actual.nivel && nuevo.anual && !actual.anual);
 }
 
-// Sin plan se elige entre los dos; con plan, solo queda pasar a Premium (se cobra hoy, descontando lo que quede).
-function abrirMuro() {
-  cerrarVentanas();
-  const mejora = Boolean(estado.cuenta?.plan);
-  $("muro-titulo").textContent = mejora ? "Pasar a Premium" : "Elija su plan";
-  $("opcion-mensual").hidden = mejora;
-  $("muro").querySelector(`input[value=${mejora ? "premium" : "prueba"}]`).checked = true;
-  $("opcion-premium").querySelector(".texto-suave").textContent = mejora
-    ? "1 historia al día · se cobra hoy, descontando lo que quede de su plan"
-    : "1 historia al día · se cobra hoy";
-  $("muro-error").hidden = true;
+function pintarPago() {
+  const nombre = $("muro").querySelector("input[name=producto]:checked")?.value;
+  const producto = PRODUCTOS[nombre];
+  if (!producto) return;
+  const { plan, pruebaUsada } = estado.cuenta ?? {};
+  const cambio = Boolean(plan) && !producto.historias;
+  const conPrueba = !plan && !pruebaUsada && producto.nivel === 1;
+  const dentroDe = (dias) => fecha(new Date(Date.now() + dias * 86400000));
+  $("muro").querySelector(".resumen-pago").hidden = cambio;
+  $("muro-cambio").hidden = !cambio;
+  $("cobro-fila").hidden = Boolean(producto.historias);
+  $("hoy-paga").textContent = euros(conPrueba ? 0 : producto.precio);
+  $("cobro-cuando").textContent = conPrueba ? `Primer cobro, ${dentroDe(3)}` : `Siguiente cobro, ${dentroDe(producto.anual ? 365 : 30)}`;
+  $("cobro-cuanto").textContent = euros(producto.precio);
+  $("pagar").textContent = producto.historias
+    ? `Comprar ${producto.historias === 1 ? "1 historia" : `${producto.historias} historias`}`
+    : cambio ? "Cambiar de plan" : conPrueba ? "Probar 3 días gratis" : `Elegir ${producto.nivel === 2 ? "Premium" : "Básico"}${producto.anual ? " anual" : ""}`;
+}
+
+// Las pestañas muestran los planes mensuales, los anuales o los packs. Se ocultan las opciones que no se pueden
+// elegir (por ejemplo, bajar de plan) y las pestañas que se quedan vacías.
+function elegirPestana(pestana) {
+  const muro = $("muro");
+  for (const boton of muro.querySelectorAll("[data-pestana]")) boton.setAttribute("aria-selected", String(boton.dataset.pestana === pestana));
+  $("muro-titulo").textContent = pestana === "packs" ? "Historias sueltas" : estado.cuenta?.plan ? "Cambiar de plan" : "Elija su plan";
+  for (const bloque of muro.querySelectorAll("[data-grupo]")) {
+    const entrada = bloque.querySelector("input");
+    bloque.hidden = bloque.dataset.grupo !== pestana || Boolean(entrada && !puedeComprar(entrada.value));
+  }
+  const visibles = [...muro.querySelectorAll("input[name=producto]")].filter((entrada) => !entrada.closest("[data-grupo]").hidden);
+  if (!visibles.some((entrada) => entrada.checked)) (visibles.find((e) => e.value === "pack_5") ?? visibles[0]).checked = true;
   pintarPago();
-  $("muro").showModal();
+}
+
+function abrirMuro(pestana = "mes") {
+  cerrarVentanas();
+  const muro = $("muro");
+  const { plan, pruebaUsada } = estado.cuenta ?? {};
+  for (const boton of muro.querySelectorAll("[data-pestana]")) {
+    boton.hidden = ![...muro.querySelectorAll(`[data-grupo="${boton.dataset.pestana}"] input`)].some((e) => puedeComprar(e.value));
+  }
+  if (muro.querySelector(`[data-pestana="${pestana}"]`).hidden) pestana = "packs";
+  for (const prueba of muro.querySelectorAll("[data-prueba]")) prueba.hidden = Boolean(plan || pruebaUsada);
+  for (const entrada of muro.querySelectorAll("input[name=producto]")) entrada.checked = false;
+  $("muro-error").hidden = true;
+  elegirPestana(pestana);
+  muro.showModal();
 }
 
 function abrirAgotadas() {
   cerrarVentanas();
   const { plan } = estado.cuenta;
   const textos = {
-    prueba: ["Ya ha usado sus 3 historias de prueba", "Cuando acabe la prueba tendrá 8 nuevas cada mes. O pase a Premium y tenga una cada día."],
-    basico: ["Ya ha usado sus 8 historias de este mes", "Tendrá 8 nuevas cuando empiece su próximo mes. Mientras, puede releer todas las que ya tiene."],
-    premium: ["Hoy ya ha estrenado su historia", "Mañana tendrá otra nueva. Mientras, puede releer todas las que ya tiene."],
+    prueba: ["Ya ha usado sus 3 historias de prueba", "Cuando acabe la prueba tendrá 8 nuevas cada mes. Si no quiere esperar, compre historias sueltas o pase a Premium."],
+    basico: ["Ya ha usado sus 8 historias de este mes", "Tendrá 8 nuevas cuando empiece su próximo mes. Si no quiere esperar, compre historias sueltas."],
+    premium: ["Hoy ya ha estrenado su historia", "Mañana tendrá otra nueva. Si no quiere esperar, compre historias sueltas."],
   }[plan];
   $("agotadas-titulo").textContent = textos[0];
   $("agotadas-texto").textContent = textos[1];
@@ -1025,13 +1085,18 @@ function abrirAgotadas() {
 }
 
 function abrirCuenta() {
-  const { plan, quedan, email } = estado.cuenta ?? {};
-  $("cuenta-plan").textContent = plan ? `${NOMBRES_PLAN[plan]}${plan === "premium" ? " · 19,99 €/mes" : plan === "basico" ? " · 4,99 €/mes" : ""}` : "Sin plan";
+  const { plan, anual, quedan, extra, extraCaducan, email, cliente } = estado.cuenta ?? {};
+  const precio = plan === "premium" ? (anual ? " · 199,99 €/año" : " · 19,99 €/mes") : plan === "basico" ? (anual ? " · 49,99 €/año" : " · 4,99 €/mes") : "";
+  $("cuenta-plan").textContent = !plan ? "Sin plan"
+    : plan === "prueba" ? `Prueba gratis · luego ${anual ? "49,99 €/año" : "4,99 €/mes"}`
+      : `${NOMBRES_PLAN[plan]}${anual ? " anual" : ""}${precio}`;
   $("cuenta-historias").textContent = !plan ? "—" : plan === "premium" ? (quedan ? "Hoy le queda 1" : "Hoy ya la ha usado") : `Le quedan ${quedan} de ${LIMITES[plan]}`;
+  $("cuenta-extra-fila").hidden = !extra;
+  if (extra) $("cuenta-extra").textContent = `${extra} · hasta el ${fecha(new Date(extraCaducan))}`;
   $("cuenta-email").textContent = email ?? "Modo local";
-  $("cuenta-premium").hidden = !plan || plan === "premium";
+  $("cuenta-premium").hidden = !plan || !Object.keys(PRODUCTOS).some((nombre) => !PRODUCTOS[nombre].historias && puedeComprar(nombre));
   $("cuenta-elegir").hidden = Boolean(plan);
-  $("gestionar").hidden = !plan || estado.config.local;
+  $("gestionar").hidden = !(plan || cliente) || estado.config.local;
   $("salir").hidden = estado.config.local;
   $("cuenta-error").hidden = true;
   $("cuenta").showModal();
@@ -1152,8 +1217,12 @@ $("otro-email").addEventListener("click", () => {
 });
 
 
+$("muro").addEventListener("click", (evento) => {
+  const pestana = evento.target.closest("[data-pestana]");
+  if (pestana) elegirPestana(pestana.dataset.pestana);
+});
 $("muro").addEventListener("change", (evento) => {
-  if (evento.target.name === "plan") pintarPago();
+  if (evento.target.name === "producto") pintarPago();
   if (evento.target.id === "empezar-ya") $("muro-error").hidden = true;
 });
 $("pagar").addEventListener("click", async () => {
@@ -1162,18 +1231,26 @@ $("pagar").addEventListener("click", async () => {
     $("muro-error").hidden = false;
     return;
   }
-  const plan = $("muro").querySelector("input[name=plan]:checked").value;
+  const producto = $("muro").querySelector("input[name=producto]:checked").value;
   $("pagar").disabled = true;
-  const respuesta = await api("/api/pago", { method: "POST", body: JSON.stringify({ plan, empezarYa: true }) }).catch(() => null);
+  const respuesta = await api("/api/pago", { method: "POST", body: JSON.stringify({ producto, empezarYa: true }) }).catch(() => null);
   $("pagar").disabled = false;
   if (!respuesta?.ok) {
     $("muro-error").textContent = "No hemos podido abrir el pago. Inténtelo otra vez.";
     $("muro-error").hidden = false;
     return;
   }
+  // Para saber al volver si el pago ya se ha reflejado en la cuenta.
+  const { plan, anual, extra } = estado.cuenta ?? {};
+  try {
+    sessionStorage.setItem("mascotadas.pago", JSON.stringify({ plan, anual, extra }));
+  } catch {
+    // Sin almacenamiento, al volver se espera solo a tener plan.
+  }
   location.href = (await respuesta.json()).url;
 });
-$("a-premium").addEventListener("click", abrirMuro);
+$("a-premium").addEventListener("click", () => abrirMuro("mes"));
+$("a-pack").addEventListener("click", () => abrirMuro("packs"));
 
 $("compartir").addEventListener("click", prepararCompartir);
 // El menú de compartir del móvil necesita un toque reciente: por eso va en su propio botón, ya con la imagen hecha.
@@ -1196,8 +1273,9 @@ for (const boton of document.querySelectorAll("[data-dejar-compartir]")) boton.a
 
 $("entrar").addEventListener("click", pedirAcceso);
 $("mi-cuenta").addEventListener("click", abrirCuenta);
-$("cuenta-premium").addEventListener("click", abrirMuro);
-$("cuenta-elegir").addEventListener("click", abrirMuro);
+$("cuenta-premium").addEventListener("click", () => abrirMuro("mes"));
+$("cuenta-elegir").addEventListener("click", () => abrirMuro("mes"));
+$("cuenta-packs").addEventListener("click", () => abrirMuro("packs"));
 $("salir").addEventListener("click", async () => {
   await estado.cliente.auth.signOut();
   location.href = "/";

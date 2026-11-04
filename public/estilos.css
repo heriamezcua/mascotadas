@@ -171,6 +171,16 @@ body:not(.en-portada) .cabecera .btn { border-color: #fff; box-shadow: 0 4px 0 v
 .plan-oscuro .ventajas svg { color: var(--menta); }
 .plan-oscuro .insignia { color: var(--tinta); border-color: var(--platano); }
 .plan-oscuro .btn { border-color: var(--platano); box-shadow: 0 5px 0 var(--lila); }
+.plan-oscuro .plan-nota strong { color: #fff; }
+.packs-portada {
+  width: 100%; max-width: 900px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 16px 28px; text-align: left; background: #fff; border: 3px dashed var(--tinta); border-radius: 24px; padding: 24px 28px;
+}
+.packs-portada h3 { font-size: 24px; margin: 0; }
+.packs-portada p { margin: 4px 0 0; font-size: 16px; max-width: 380px; }
+.packs-lista { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 10px; }
+.packs-lista li { display: flex; flex-direction: column; align-items: center; min-width: 108px; padding: 10px 14px; border: 2px solid var(--tinta); border-radius: 16px; background: #fff4cc; font-size: 15px; }
+.packs-lista span { font: 800 22px/1.1 var(--titular); }
 .garantias { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 28px; font-size: 16px; font-weight: 800; color: var(--suave); }
 .garantias li { display: flex; align-items: center; gap: 8px; }
 
@@ -436,7 +446,18 @@ body.en-publica .narracion { position: sticky; }
 .separador { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 800; color: var(--suave); }
 .separador::before, .separador::after { content: ""; flex: 1; border-top: 2px dashed #d9d0e6; }
 .campo-codigo { text-align: center; font-size: 34px !important; letter-spacing: .35em; font-weight: 900; padding-left: .35em !important; }
+/* Pestañas Mensual / Anual / Packs de la ventana de pago. */
+.ventana .pestanas { display: flex; flex-direction: row; gap: 4px; padding: 4px; border: 3px solid var(--tinta); border-radius: 16px; background: #f6f2fb; }
+.pestana {
+  flex: 1; min-height: 44px; padding: 6px 8px; border: 0; border-radius: 11px; background: transparent; color: var(--tinta);
+  font: 800 16px/1.1 var(--texto); cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px 6px;
+}
+.pestana[aria-selected="true"] { background: var(--tinta); color: #fff; }
+.pestana:focus-visible { outline: 4px solid var(--foco); outline-offset: 2px; }
+.ahorro { font-size: 12px; font-weight: 900; background: var(--menta); color: var(--tinta); border-radius: 999px; padding: 2px 7px; }
 .opciones-plan { display: flex; flex-direction: column; gap: 12px; }
+.opciones-plan > p { margin: 0; }
+.opcion-plan-texto .fila-entre strong:last-child, .resumen-pago dd { white-space: nowrap; } /* El precio nunca se parte. */
 .opcion-plan { position: relative; display: flex; gap: 14px; align-items: flex-start; border: 3px solid var(--tinta); border-radius: 18px; padding: 16px; cursor: pointer; background: #fff; }
 .opcion-plan input { width: 24px; height: 24px; margin: 2px 0 0; accent-color: var(--tinta); flex: none; }
 .opcion-plan:has(input:checked) { background: #fff4cc; box-shadow: 0 4px 0 var(--tinta); }

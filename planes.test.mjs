@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { inicioDelDia, inicioDelPeriodo, inicioDeSuscripcion, planDeSuscripcion, restantes } from "./planes.mjs";
+import { esAnual, inicioDelDia, inicioDelPeriodo, inicioDeSuscripcion, planDeSuscripcion, restantes } from "./planes.mjs";
 
 const suscripcion = (status, precio = "basico") => ({ status, items: { data: [{ price: { id: precio }, current_period_start: 1000 }] } });
 
@@ -37,4 +37,20 @@ test("el estado de Stripe decide el acceso", () => {
 
 test("el periodo sale de la línea de la suscripción", () => {
   assert.equal(inicioDeSuscripcion(suscripcion("active")), new Date(1000000).toISOString());
+});
+
+test("el plan anual da sus historias mes a mes desde el día de pago", () => {
+  const perfil = { plan: "basico", periodo_inicio: "2026-01-31T10:00:00.000Z" };
+  assert.equal(inicioDelPeriodo(perfil, new Date("2026-02-15T00:00:00Z")).toISOString(), "2026-01-31T10:00:00.000Z");
+  // Febrero no tiene 31: el mes siguiente empieza el último día de febrero.
+  assert.equal(inicioDelPeriodo(perfil, new Date("2026-03-01T00:00:00Z")).toISOString(), "2026-02-28T10:00:00.000Z");
+  assert.equal(inicioDelPeriodo(perfil, new Date("2026-03-31T10:00:00Z")).toISOString(), "2026-03-31T10:00:00.000Z");
+  assert.equal(inicioDelPeriodo(perfil, new Date("2026-12-31T09:00:00Z")).toISOString(), "2026-11-30T10:00:00.000Z");
+});
+
+test("Premium anual también es Premium, y se distingue lo anual", () => {
+  const anual = { status: "active", items: { data: [{ price: { id: "premium-anual", recurring: { interval: "year" } } }] } };
+  assert.equal(planDeSuscripcion(anual, ["premium", "premium-anual"]), "premium");
+  assert.equal(esAnual(anual), true);
+  assert.equal(esAnual(suscripcion("active")), false);
 });

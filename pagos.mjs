@@ -1,66 +1,110 @@
 import Stripe from "stripe";
-import { guardarPerfil, leerPerfil } from "./datos.mjs";
-import { inicioDeSuscripcion, planDeSuscripcion } from "./planes.mjs";
+import { guardarPerfil, leerPerfil, sumarPack } from "./datos.mjs";
+import { esAnual, inicioDeSuscripcion, planDeSuscripcion } from "./planes.mjs";
 
 // Sin clave de Stripe, fuera de producción, los pagos se simulan: sirve para desarrollar y probar.
 export const simulado = !process.env.STRIPE_SECRET_KEY && process.env.NODE_ENV !== "production";
 const stripe = simulado ? null : new Stripe(process.env.STRIPE_SECRET_KEY);
 const WEB = process.env.WEB_URL || "http://localhost:4173";
-const { STRIPE_PRECIO_BASICO, STRIPE_PRECIO_PREMIUM, STRIPE_WEBHOOK_SECRET } = process.env;
+const { STRIPE_WEBHOOK_SECRET } = process.env;
 
-function lineas(plan) {
-  if (plan === "premium") return [{ price: STRIPE_PRECIO_PREMIUM, quantity: 1 }];
-  return [{ price: STRIPE_PRECIO_BASICO, quantity: 1 }];
+// Lo que se puede comprar. nivel: para saber si un cambio de plan es una subida (solo se permite subir).
+export const PRODUCTOS = {
+  basico: { precio: process.env.STRIPE_PRECIO_BASICO, nivel: 1, anual: false },
+  basico_anual: { precio: process.env.STRIPE_PRECIO_BASICO_ANUAL, nivel: 1, anual: true },
+  premium: { precio: process.env.STRIPE_PRECIO_PREMIUM, nivel: 2, anual: false },
+  premium_anual: { precio: process.env.STRIPE_PRECIO_PREMIUM_ANUAL, nivel: 2, anual: true },
+  pack_1: { precio: process.env.STRIPE_PACK_1, historias: 1 },
+  pack_5: { precio: process.env.STRIPE_PACK_5, historias: 5 },
+  pack_15: { precio: process.env.STRIPE_PACK_15, historias: 15 },
+};
+const PRECIOS_PREMIUM = [PRODUCTOS.premium.precio, PRODUCTOS.premium_anual.precio].filter(Boolean);
+const productoDePrecio = (precio) => Object.values(PRODUCTOS).find((p) => p.precio && p.precio === precio);
+
+// Para pasar de un plan a otro sin pasar otra vez por la caja: solo a uno más alto, o del mismo al anual.
+export function esSubida(actual, nuevo) {
+  if (!actual || !nuevo || nuevo.historias || actual === nuevo) return false;
+  return nuevo.nivel > actual.nivel || (nuevo.nivel === actual.nivel && nuevo.anual && !actual.anual);
 }
 
-export async function crearPago(usuario, plan) {
+const CONDICIONES = "Al pagar aceptas los términos y condiciones de mascotadas.com/condiciones.";
+const cliente = (perfil, usuario) => (perfil.stripe_customer ? { customer: perfil.stripe_customer } : { customer_email: usuario.email });
+const comunes = {
+  automatic_tax: { enabled: true },
+  // Stripe solo pide aceptar las condiciones si la cuenta activada tiene su URL configurada.
+  ...(process.env.STRIPE_PEDIR_CONDICIONES === "si" ? { consent_collection: { terms_of_service: "required" } } : {}),
+  locale: "es",
+  success_url: `${WEB}/?pago=ok`,
+  cancel_url: `${WEB}/?pago=cancelado`,
+};
+
+export async function crearPago(usuario, nombre) {
+  const producto = PRODUCTOS[nombre];
   const perfil = await leerPerfil(usuario.id);
 
   if (simulado) {
-    await guardarPerfil(usuario.id, {
-      plan: plan === "premium" ? "premium" : "prueba",
-      periodo_inicio: new Date().toISOString(),
-      prueba_usada: true,
-    });
+    if (producto.historias) await sumarPack(`simulada-${Date.now()}`, usuario.id, producto.historias, 0);
+    else {
+      await guardarPerfil(usuario.id, {
+        plan: producto.nivel === 2 ? "premium" : "prueba",
+        anual: producto.anual,
+        periodo_inicio: new Date().toISOString(),
+        prueba_usada: true,
+      });
+    }
     return `${WEB}/?pago=ok`;
   }
 
-  // Quien ya está suscrito cambia de plan sin pasar otra vez por la caja; solo se puede subir a Premium.
+  // Packs: pago único, sin suscripción. El aviso de Stripe suma las historias al terminar el pago.
+  if (producto.historias) {
+    const sesion = await stripe.checkout.sessions.create({
+      mode: "payment",
+      client_reference_id: usuario.id,
+      ...cliente(perfil, usuario),
+      ...(perfil.stripe_customer ? {} : { customer_creation: "always" }),
+      line_items: [{ price: producto.precio, quantity: 1 }],
+      metadata: { usuario: usuario.id, historias: String(producto.historias) },
+      invoice_creation: { enabled: true }, // Factura de la compra, como en las suscripciones.
+      custom_text: { submit: { message: `Las historias del pack valen 12 meses. ${CONDICIONES}` } },
+      ...comunes,
+    });
+    return sesion.url;
+  }
+
+  // Quien ya está suscrito cambia de plan sin pasar otra vez por la caja: se cobra hoy lo que corresponda.
   if (perfil.stripe_suscripcion && perfil.plan) {
-    if (plan !== "premium" || perfil.plan === "premium") throw Object.assign(new Error("Ya tienes este plan"), { status: 409 });
     const actual = await stripe.subscriptions.retrieve(perfil.stripe_suscripcion);
+    if (!esSubida(productoDePrecio(actual.items.data[0].price.id), producto)) {
+      throw Object.assign(new Error("Ese cambio de plan no está disponible"), { status: 409 });
+    }
     await stripe.subscriptions.update(actual.id, {
-      items: [{ id: actual.items.data[0].id, price: STRIPE_PRECIO_PREMIUM }],
+      items: [{ id: actual.items.data[0].id, price: producto.precio }],
       trial_end: "now",
-      proration_behavior: "create_prorations",
+      proration_behavior: "always_invoice",
     });
     return `${WEB}/?pago=ok`;
   }
 
-  const conPrueba = plan !== "premium" && !perfil.prueba_usada;
+  const conPrueba = producto.nivel === 1 && !perfil.prueba_usada;
+  const despues = producto.anual ? "49,99 € al año" : "4,99 € al mes";
   const sesion = await stripe.checkout.sessions.create({
     mode: "subscription",
     client_reference_id: usuario.id,
-    ...(perfil.stripe_customer ? { customer: perfil.stripe_customer } : { customer_email: usuario.email }),
-    line_items: lineas(plan),
+    ...cliente(perfil, usuario),
+    line_items: [{ price: producto.precio, quantity: 1 }],
     subscription_data: {
       metadata: { usuario: usuario.id },
       ...(conPrueba ? { trial_period_days: 3 } : {}),
     },
     payment_method_collection: "always",
-    automatic_tax: { enabled: true },
-    // Stripe solo pide aceptar las condiciones si la cuenta activada tiene su URL configurada.
-    ...(process.env.STRIPE_PEDIR_CONDICIONES === "si" ? { consent_collection: { terms_of_service: "required" } } : {}),
     custom_text: {
       submit: {
         message: conPrueba
-          ? "Hoy no pagas nada. Si no cancelas en los 3 días de prueba, empezará tu plan de 4,99 € al mes. Al continuar aceptas los términos y condiciones de mascotadas.com/condiciones."
-          : "Al pagar aceptas los términos y condiciones de mascotadas.com/condiciones. Puedes cancelar cuando quieras.",
+          ? `Hoy no pagas nada. Si no cancelas en los 3 días de prueba, empezará tu plan de ${despues}. ${CONDICIONES}`
+          : `${CONDICIONES} Puedes cancelar cuando quieras.`,
       },
     },
-    locale: "es",
-    success_url: `${WEB}/?pago=ok`,
-    cancel_url: `${WEB}/?pago=cancelado`,
+    ...comunes,
   });
   return sesion.url;
 }
@@ -78,8 +122,23 @@ export async function cancelarSuscripcion(usuario) {
   if (id && plan) await stripe.subscriptions.cancel(id);
 }
 
+// Pack pagado: suma sus historias una sola vez, aunque Stripe avise varias.
+async function packPagado(sesion) {
+  if (sesion.mode !== "payment" || sesion.payment_status !== "paid") return;
+  const usuario = sesion.metadata?.usuario;
+  const historias = Number(sesion.metadata?.historias);
+  if (!usuario || !Number.isInteger(historias) || historias <= 0) return;
+  await sumarPack(sesion.id, usuario, historias, sesion.amount_total ?? 0);
+  const perfil = await leerPerfil(usuario);
+  if (!perfil.stripe_customer && sesion.customer) await guardarPerfil(usuario, { stripe_customer: sesion.customer });
+}
+
 export async function recibirEvento(cuerpo, firma) {
   const evento = stripe.webhooks.constructEvent(cuerpo, firma, STRIPE_WEBHOOK_SECRET);
+  // Los pagos con transferencia o similares se confirman más tarde, con el segundo aviso.
+  if (["checkout.session.completed", "checkout.session.async_payment_succeeded"].includes(evento.type)) {
+    return packPagado(evento.data.object);
+  }
   if (!evento.type.startsWith("customer.subscription.")) return;
 
   // Los avisos de Stripe pueden llegar tarde o desordenados: se consulta el estado actual en vez de fiarse del aviso,
@@ -91,11 +150,12 @@ export async function recibirEvento(cuerpo, firma) {
   const { stripe_suscripcion: actual, plan: planActual } = await leerPerfil(usuario);
   if (actual && actual !== suscripcion.id && planActual && !["active", "trialing"].includes(suscripcion.status)) return;
 
-  const plan = planDeSuscripcion(suscripcion, STRIPE_PRECIO_PREMIUM);
+  const plan = planDeSuscripcion(suscripcion, PRECIOS_PREMIUM);
   await guardarPerfil(usuario, {
     stripe_customer: suscripcion.customer,
     stripe_suscripcion: suscripcion.id,
     plan,
+    anual: esAnual(suscripcion),
     periodo_inicio: inicioDeSuscripcion(suscripcion),
     ...(plan === "prueba" ? { prueba_usada: true } : {}),
   });

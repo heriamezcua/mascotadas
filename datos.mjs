@@ -35,6 +35,39 @@ export async function guardarPerfil(id, cambios) {
   comprobar(await supabase.from("perfiles").upsert({ id, ...cambios }));
 }
 
+// Historias de pack que siguen valiendo (0 si han caducado).
+export const extraDe = (perfil, ahora = new Date()) =>
+  perfil?.historias_extra > 0 && new Date(perfil.extra_caducan) > ahora ? perfil.historias_extra : 0;
+
+// Suma un pack comprado. Devuelve false si esa compra ya se había sumado.
+export async function sumarPack(compra, usuario, historias, importe) {
+  if (local) {
+    memoria.compras ??= new Set();
+    if (memoria.compras.has(compra)) return false;
+    memoria.compras.add(compra);
+    const perfil = memoria.perfil;
+    perfil.historias_extra = extraDe(perfil) + historias;
+    perfil.extra_caducan = new Date(Date.now() + 365 * 86400000).toISOString();
+    return true;
+  }
+  return comprobar(await supabase.rpc("sumar_pack", { p_compra: compra, p_usuario: usuario, p_historias: historias, p_importe: importe }));
+}
+
+// Gasta una historia de pack; false si no le queda ninguna válida.
+export async function gastarExtra(usuario) {
+  if (local) {
+    if (!extraDe(memoria.perfil)) return false;
+    memoria.perfil.historias_extra--;
+    return true;
+  }
+  return comprobar(await supabase.rpc("gastar_extra", { p_usuario: usuario }));
+}
+
+export async function devolverExtra(usuario) {
+  if (local) return void memoria.perfil.historias_extra++;
+  comprobar(await supabase.rpc("devolver_extra", { p_usuario: usuario }));
+}
+
 export async function listarHistorias(usuario) {
   if (local) return memoria.historias;
   return comprobar(
@@ -75,12 +108,14 @@ export async function crearHistoria(usuario, historia) {
   return comprobar(await supabase.from("historias").insert({ usuario, ...historia }).select().single());
 }
 
+// Historias del plan creadas desde una fecha; las de pack no cuentan para su límite.
 export async function contarHistorias(usuario, desde) {
-  if (local) return memoria.historias.filter((c) => new Date(c.creado) >= desde).length;
+  if (local) return memoria.historias.filter((c) => new Date(c.creado) >= desde && !c.de_pack).length;
   const { count, error } = await supabase
     .from("historias")
     .select("id", { count: "exact", head: true })
     .eq("usuario", usuario)
+    .eq("de_pack", false)
     .gte("creado", desde.toISOString());
   if (error) throw new Error(error.message);
   return count;
