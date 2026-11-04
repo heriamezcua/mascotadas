@@ -423,7 +423,8 @@ async function leerEstatico(relativa) {
 }
 
 async function atenderApi(req, res, ruta) {
-  const clave = `${req.method} ${ruta}`;
+  // HEAD es un GET sin contenido (Node no envía el cuerpo): lo usan los monitores de caídas como UptimeRobot.
+  const clave = `${req.method === "HEAD" ? "GET" : req.method} ${ruta}`;
   if (ruta !== "/api/stripe" && (superaLimite(req, "general") || (CARAS.has(clave) && superaLimite(req, "caras")))) {
     res.setHeader("Retry-After", "60");
     return responder(res, 429, { error: "Demasiadas peticiones seguidas. Espera un minuto y vuelve a intentarlo." });

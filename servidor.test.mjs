@@ -46,6 +46,8 @@ test("no se puede salir de la carpeta public", async () => {
 test("la API no se guarda en caché y rechaza datos mal formados", async () => {
   const estado = await fetch(`${web}/api/estado`);
   assert.equal(estado.headers.get("cache-control"), "no-store");
+  // Los monitores de caídas comprueban con HEAD.
+  assert.equal((await fetch(`${web}/api/estado`, { method: "HEAD" })).status, 200);
   const pedir = (ruta, cuerpo) => fetch(web + ruta, { method: "POST", body: JSON.stringify(cuerpo) }).then((r) => r.status);
   assert.equal(await pedir("/api/voz", { historia: "x", pagina: 0, voz: "espana-hombre" }), 400);
   assert.equal(await pedir("/api/voz", { historia: crypto.randomUUID(), pagina: 0, voz: "__proto__" }), 400);
