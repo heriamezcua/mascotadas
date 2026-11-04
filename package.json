@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --test planes.test.mjs",
+    "test": "node --test planes.test.mjs servidor.test.mjs",
     "start": "node servidor.mjs"
   },
   "keywords": [],

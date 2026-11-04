@@ -1,0 +1,29 @@
+# Pasa los tests en cada cambio. Railway, con «Wait for CI» activado, solo publica si salen bien.
+
+name: Pruebas
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Sintaxis
+        run: for archivo in *.mjs public/*.js; do node --check "$archivo"; done
+      - name: Tests
+        run: npm test
+      - name: Dependencias sin fallos de seguridad graves
+        run: npm audit --omit=dev --audit-level=high

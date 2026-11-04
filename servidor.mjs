@@ -80,6 +80,29 @@ const generando = new Set(); // Impide saltarse el máximo pidiendo dos historia
 const REINTENTOS = [30000, 120000]; // Google se satura a ratos: las páginas que fallan se vuelven a pintar más tarde.
 const repintando = new Map(); // Evita pintar dos veces la misma página a la vez.
 
+// Al publicar una versión nueva, Railway avisa a la vieja para que cierre. Antes de apagarse termina lo que está
+// pintando, para no perder ilustraciones ya pagadas; las esperas entre reintentos se cortan y esas páginas se
+// pintarán cuando alguien llegue a ellas.
+let cerrando = false;
+const trabajos = new Set();
+const despertadores = new Set();
+
+function enMarcha(promesa) {
+  trabajos.add(promesa);
+  promesa.finally(() => trabajos.delete(promesa));
+  return promesa;
+}
+
+const pausar = (ms) => new Promise((listo) => {
+  const fin = () => {
+    clearTimeout(reloj);
+    despertadores.delete(fin);
+    listo();
+  };
+  const reloj = setTimeout(fin, ms);
+  despertadores.add(fin);
+});
+
 async function fichaDe(usuario, mascota) {
   const clave = claveFicha(mascota);
   let ficha = await datos.leerFicha(usuario, clave);
@@ -101,7 +124,7 @@ async function marcarPaginas(usuario, id, cambios) {
 function repintarPagina(usuario, historia, i) {
   const clave = `${historia.id}-${i}`;
   if (!repintando.has(clave)) {
-    repintando.set(clave, (async () => {
+    repintando.set(clave, enMarcha((async () => {
       try {
         const imagen = await pintarEscena(historia.paginas[i], historia.mascota, await fichaDe(usuario, historia.mascota));
         await datos.guardarFondo(usuario, historia.id, i, imagen);
@@ -113,7 +136,7 @@ function repintarPagina(usuario, historia, i) {
       } finally {
         repintando.delete(clave);
       }
-    })());
+    })()));
   }
   return repintando.get(clave);
 }
@@ -128,8 +151,9 @@ async function pintarEnSegundoPlano(usuario, historia) {
     });
     let pendientes = pintadas.flatMap((bien, i) => (bien || !historia.paginas[i].fondo ? [] : [i]));
     for (const pausa of REINTENTOS) {
-      if (pendientes.length === 0) return;
-      await new Promise((listo) => setTimeout(listo, pausa));
+      if (pendientes.length === 0 || cerrando) break;
+      await pausar(pausa);
+      if (cerrando) break;
       const resultados = await Promise.all(pendientes.map((i) => repintarPagina(usuario, historia, i)));
       pendientes = pendientes.filter((_, n) => !resultados[n]);
     }
@@ -204,7 +228,7 @@ const rutas = {
       const conFondo = paginas.map((pagina) => ({ ...pagina, imagen: hayImagenes() && pagina.fondo ? "escena" : false }));
       const historia = await datos.crearHistoria(usuario.id, { titulo, paginas: conFondo, modo, mascota });
       // Los fondos tardan minutos: la historia se abre ya y cada fondo aparece en cuanto está pintado.
-      if (hayImagenes()) pintarEnSegundoPlano(usuario.id, historia);
+      if (hayImagenes()) enMarcha(pintarEnSegundoPlano(usuario.id, historia));
       responder(res, 200, historia);
     } finally {
       generando.delete(usuario.id);
@@ -370,7 +394,7 @@ async function servirCompartida(res, enlace) {
   const titulo = historia ? `${historia.titulo} · Mascotadas` : "Historia no disponible · Mascotadas";
   html = html
     .replaceAll("{{titulo}}", escaparHtml(titulo))
-    .replaceAll("{{imagen}}", historia ? `https://mascotadas.com/api/publica/fondo?e=${enlace}&amp;pagina=0&amp;formato=jpg` : "https://mascotadas.com/img/ejemplo.jpg");
+    .replaceAll("{{imagen}}", historia ? `https://mascotadas.com/api/publica/fondo?e=${enlace}&amp;pagina=0&amp;formato=jpg` : "https://mascotadas.com/img/compartir.jpg");
   res.writeHead(historia ? 200 : 404, { "Content-Type": TIPOS[".html"], ...CABECERAS });
   res.end(html);
 }
@@ -457,3 +481,18 @@ const servidor = createServer(async (req, res) => {
 // Quien envía una petición muy despacio no puede tener conexiones abiertas indefinidamente.
 servidor.headersTimeout = 10000;
 servidor.requestTimeout = 15000;
+
+async function cerrar() {
+  if (cerrando) return;
+  cerrando = true;
+  console.log(`Cerrando: termino ${trabajos.size} pintura(s) y las peticiones en marcha.`);
+  // Por si algo se queda colgado: Railway da 180 s (railway.json) y se sale un poco antes.
+  setTimeout(() => process.exit(0), 170000).unref();
+  const cerrado = new Promise((listo) => servidor.close(listo)); // No acepta más conexiones; espera a las abiertas.
+  servidor.closeIdleConnections();
+  for (const despertar of [...despertadores]) despertar();
+  await Promise.allSettled([...trabajos, cerrado]);
+  process.exit(0);
+}
+process.on("SIGTERM", cerrar);
+process.on("SIGINT", cerrar);
