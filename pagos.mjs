@@ -85,8 +85,9 @@ export async function crearPago(usuario, nombre) {
     return `${WEB}/?pago=ok`;
   }
 
-  const conPrueba = producto.nivel === 1 && !perfil.prueba_usada;
-  const despues = producto.anual ? "49,99 € al año" : "4,99 € al mes";
+  const conPrueba = !perfil.prueba_usada;
+  const precio = { basico: "4,99 € al mes", basico_anual: "49,99 € al año", premium: "19,99 € al mes", premium_anual: "199,99 € al año" };
+  const despues = precio[nombre];
   const sesion = await stripe.checkout.sessions.create({
     mode: "subscription",
     client_reference_id: usuario.id,
@@ -107,6 +108,37 @@ export async function crearPago(usuario, nombre) {
     ...comunes,
   });
   return sesion.url;
+}
+
+// Qué plan empezará al acabar la prueba y cuánto costará, para enseñarlo antes de cobrar.
+export async function planDeLaPrueba(usuario) {
+  const perfil = await leerPerfil(usuario.id);
+  if (perfil.plan !== "prueba") return null;
+  if (simulado) return { nivel: 1, anual: Boolean(perfil.anual), importe: perfil.anual ? 4999 : 499 };
+  const suscripcion = await stripe.subscriptions.retrieve(perfil.stripe_suscripcion);
+  const precio = suscripcion.items.data[0].price;
+  const producto = productoDePrecio(precio.id);
+  return { nivel: producto?.nivel ?? 1, anual: esAnual(suscripcion), importe: precio.unit_amount };
+}
+
+// Termina la prueba ya y cobra el plan hoy. Si el cobro falla, Stripe no cambia nada y la prueba sigue.
+export async function empezarYa(usuario) {
+  const perfil = await leerPerfil(usuario.id);
+  if (perfil.plan !== "prueba") throw Object.assign(new Error("No está en la prueba gratis"), { status: 409 });
+  if (simulado) {
+    await guardarPerfil(usuario.id, { plan: "basico", periodo_inicio: new Date().toISOString() });
+    return;
+  }
+  try {
+    await stripe.subscriptions.update(perfil.stripe_suscripcion, {
+      trial_end: "now",
+      proration_behavior: "none",
+      payment_behavior: "error_if_incomplete",
+    });
+  } catch (error) {
+    if (error.type === "StripeCardError") throw Object.assign(new Error("No se ha podido cobrar con su tarjeta."), { status: 402 });
+    throw error;
+  }
 }
 
 export async function crearPortal(usuario) {

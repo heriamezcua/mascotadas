@@ -1,7 +1,8 @@
+// historias: cuántas por periodo (la prueba entera o cada mes); alDia: cuántas como mucho en un mismo día.
 export const PLANES = {
   prueba: { historias: 3 },
-  basico: { historias: 8 },
-  premium: { historias: 1, diario: true },
+  basico: { historias: 8, alDia: 2 },
+  premium: { historias: 30, alDia: 5 },
 };
 
 const ZONA = "Europe/Madrid";
@@ -29,16 +30,19 @@ function sumarMeses(fecha, meses) {
 // Desde cuándo se cuentan los historias del periodo actual. Los planes por meses cuentan cada mes desde el día en
 // que empezó el periodo de pago: así el anual también da sus historias mes a mes y no todas de golpe.
 export function inicioDelPeriodo(perfil, ahora = new Date()) {
-  if (PLANES[perfil.plan].diario) return inicioDelDia(ahora);
   const ancla = new Date(perfil.periodo_inicio);
   let meses = 0;
   while (sumarMeses(ancla, meses + 1) <= ahora) meses++;
   return sumarMeses(ancla, meses);
 }
 
-export function restantes(perfil, usados) {
-  if (!perfil?.plan) return 0;
-  return Math.max(0, PLANES[perfil.plan].historias - usados);
+// Las que le quedan este periodo (mes) y hoy; puede crear la menor de las dos.
+export function restantes(perfil, usados, usadosHoy = 0) {
+  if (!perfil?.plan) return { mes: 0, hoy: 0, quedan: 0 };
+  const { historias, alDia } = PLANES[perfil.plan];
+  const mes = Math.max(0, historias - usados);
+  const hoy = alDia ? Math.max(0, alDia - usadosHoy) : mes;
+  return { mes, hoy, quedan: Math.min(mes, hoy) };
 }
 
 // Traduce una suscripción de Stripe al plan que da acceso. preciosPremium: los precios mensual y anual de Premium.

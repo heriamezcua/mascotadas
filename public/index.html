@@ -172,7 +172,7 @@
           </div>
           <p class="plan-precio"><span class="d">4,99 €</span><span>/mes</span></p>
           <ul class="ventajas">
-            <li><svg width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>8 historias nuevas al mes</li>
+            <li><svg width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>8 historias nuevas al mes, hasta 2 al día</li>
             <li><svg width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>Ilustradas y narradas</li>
             <li><svg width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>Puede releerlas cuando quiera</li>
           </ul>
@@ -186,12 +186,12 @@
           </div>
           <p class="plan-precio"><span class="d">19,99 €</span><span>/mes</span></p>
           <ul class="ventajas">
-            <li><svg width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>1 historia nueva cada día</li>
+            <li><svg width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>30 historias nuevas al mes, hasta 5 al día</li>
             <li><svg width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>Ilustradas y narradas</li>
             <li><svg width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>Un cuento para cada noche</li>
           </ul>
           <button type="button" class="btn btn-platano ancho-total" data-ir="crear">Elegir Premium</button>
-          <p class="plan-nota">Se cobra desde el primer día. O <strong>199,99 € al año</strong>: 2 meses gratis. IVA incluido.</p>
+          <p class="plan-nota">3 días gratis; después, 19,99 € al mes. O <strong>199,99 € al año</strong>: 2 meses gratis. IVA incluido.</p>
         </article>
       </div>
       <div class="packs-portada">
@@ -217,7 +217,7 @@
         <h2 class="d titulo-seccion">Preguntas frecuentes</h2>
         <div class="preguntas">
           <details open><summary>¿Cuándo se me cobra?<svg class="chev" width="24" height="24" aria-hidden="true"><use href="#i-chev"/></svg></summary>
-            <p>En el plan Básico, los 3 primeros días son gratis. Si no cancela, el cuarto día se cobran 4,99 € y después cada mes (o 49,99 € y después cada año, si eligió el anual). Premium se cobra desde el primer día. Los packs de historias se pagan una sola vez, al comprarlos.</p></details>
+            <p>Los 3 primeros días son gratis. Si no cancela, el cuarto día se cobran 4,99 € y después cada mes (o 49,99 € y después cada año, si eligió el anual). Premium también empieza con 3 días gratis y después se cobran 19,99 € al mes (o 199,99 € al año). Los packs de historias se pagan una sola vez, al comprarlos.</p></details>
           <details><summary>¿Puedo comprar historias sin suscribirme?<svg class="chev" width="24" height="24" aria-hidden="true"><use href="#i-chev"/></svg></summary>
             <p>Sí: compre un pack de 1, 5 o 15 historias. Se pagan una vez, valen 12 meses y también le sirven si tiene un plan y se le acaban las del mes.</p></details>
           <details><summary>¿Cómo cancelo?<svg class="chev" width="24" height="24" aria-hidden="true"><use href="#i-chev"/></svg></summary>
@@ -566,28 +566,28 @@
         <input type="radio" name="producto" value="basico">
         <span class="opcion-plan-texto">
           <span class="fila-entre"><strong>Básico</strong><strong>4,99 €<small>/mes</small></strong></span>
-          <span class="texto-suave">8 historias al mes · <span data-prueba>3 días gratis</span></span>
+          <span class="texto-suave">8 al mes, hasta 2 al día · <span data-prueba>3 días gratis</span></span>
         </span>
       </label>
       <label class="opcion-plan" data-grupo="mes">
         <input type="radio" name="producto" value="premium">
         <span class="opcion-plan-texto">
           <span class="fila-entre"><strong>Premium</strong><strong>19,99 €<small>/mes</small></strong></span>
-          <span class="texto-suave">1 historia al día</span>
+          <span class="texto-suave">30 al mes, hasta 5 al día · <span data-prueba>3 días gratis</span></span>
         </span>
       </label>
       <label class="opcion-plan" data-grupo="anual">
         <input type="radio" name="producto" value="basico_anual">
         <span class="opcion-plan-texto">
           <span class="fila-entre"><strong>Básico anual</strong><strong>49,99 €<small>/año</small></strong></span>
-          <span class="texto-suave">8 historias al mes · <span data-prueba>3 días gratis</span> · ahorra 9,89 €</span>
+          <span class="texto-suave">8 al mes, hasta 2 al día · <span data-prueba>3 días gratis</span> · ahorra 9,89 €</span>
         </span>
       </label>
       <label class="opcion-plan" data-grupo="anual">
         <input type="radio" name="producto" value="premium_anual">
         <span class="opcion-plan-texto">
           <span class="fila-entre"><strong>Premium anual</strong><strong>199,99 €<small>/año</small></strong></span>
-          <span class="texto-suave">1 historia al día · ahorra 39,89 €</span>
+          <span class="texto-suave">30 al mes, hasta 5 al día · <span data-prueba>3 días gratis</span> · ahorra 39,89 €</span>
         </span>
       </label>
       <label class="opcion-plan" data-grupo="packs">
@@ -635,8 +635,9 @@
       </span>
       <h2 id="agotadas-titulo" class="d"></h2>
       <p id="agotadas-texto" class="texto-suave"></p>
+      <button type="button" id="a-empezar" class="btn btn-p ancho-total">Empezar ya mi plan</button>
       <button type="button" id="a-pack" class="btn btn-p ancho-total">Comprar historias sueltas</button>
-      <button type="button" id="a-premium" class="btn btn-discreto ancho-total">Pasar a Premium · 1 al día</button>
+      <button type="button" id="a-premium" class="btn btn-discreto ancho-total">Pasar a Premium · 30 al mes</button>
       <button type="button" class="btn btn-discreto ancho-total" data-cerrar>Releer mis historias</button>
     </div>
   </dialog>
@@ -651,6 +652,7 @@
       <div class="fila-dato"><dt>Cuenta</dt><dd id="cuenta-email"></dd></div>
     </dl>
     <p id="cuenta-error" class="error-campo" role="alert" hidden></p>
+    <button type="button" id="cuenta-empezar" class="btn btn-p ancho-total">Empezar ya mi plan</button>
     <button type="button" id="cuenta-premium" class="btn btn-p ancho-total">Cambiar de plan</button>
     <button type="button" id="cuenta-elegir" class="btn btn-p ancho-total">Elegir un plan</button>
     <button type="button" id="cuenta-packs" class="btn btn-discreto ancho-total">Comprar historias sueltas</button>
@@ -675,6 +677,15 @@
     <a id="descargar-story" class="btn btn-discreto ancho-total" download="mascotadas-historia.jpg">Descargar imagen</a>
     <button type="button" id="copiar-enlace" class="btn btn-discreto ancho-total">Copiar enlace</button>
     <p class="texto-suave pequeno">Cualquiera con el enlace podrá leer esta historia. <button type="button" class="enlace" data-dejar-compartir>Dejar de compartir</button></p>
+  </dialog>
+
+  <dialog id="empezar" class="ventana" aria-labelledby="empezar-titulo" aria-describedby="empezar-texto">
+    <button type="button" class="cerrar" data-cerrar aria-label="Cerrar"><svg width="24" height="24" aria-hidden="true"><use href="#i-cruz"/></svg></button>
+    <h2 id="empezar-titulo" class="d">Empezar ya mi plan</h2>
+    <p id="empezar-texto" class="texto-suave">Un momento…</p>
+    <p id="empezar-error" class="error-campo" role="alert" hidden></p>
+    <button type="button" id="empezar-confirmar" class="btn btn-p ancho-total" disabled>Empezar y pagar</button>
+    <button type="button" class="btn btn-discreto ancho-total" data-cerrar>Seguir con la prueba</button>
   </dialog>
 
   <dialog id="confirmar-borrado" class="ventana" role="alertdialog" aria-labelledby="borrar-titulo" aria-describedby="borrar-texto">

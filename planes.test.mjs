@@ -9,21 +9,32 @@ test("el día empieza a medianoche en Madrid, también en horario de invierno y 
   assert.equal(inicioDelDia(new Date("2026-07-15T12:30:45Z")).toISOString(), "2026-07-14T22:00:00.000Z");
 });
 
-test("premium cuenta por día y el resto por periodo de facturación", () => {
+test("todos los planes cuentan por meses desde el periodo de facturación", () => {
   const ahora = new Date("2026-01-15T12:00:00Z");
-  assert.equal(inicioDelPeriodo({ plan: "premium" }, ahora).toISOString(), "2026-01-14T23:00:00.000Z");
   const periodo = "2026-01-02T10:00:00.000Z";
   assert.equal(inicioDelPeriodo({ plan: "basico", periodo_inicio: periodo }, ahora).toISOString(), periodo);
+  assert.equal(inicioDelPeriodo({ plan: "premium", periodo_inicio: periodo }, ahora).toISOString(), periodo);
 });
 
-test("los historias restantes respetan el máximo de cada plan", () => {
-  assert.equal(restantes(null, 0), 0);
-  assert.equal(restantes({ plan: "prueba" }, 2), 1);
-  assert.equal(restantes({ plan: "prueba" }, 3), 0);
-  assert.equal(restantes({ plan: "basico" }, 7), 1);
-  assert.equal(restantes({ plan: "basico" }, 8), 0);
-  assert.equal(restantes({ plan: "premium" }, 0), 1);
-  assert.equal(restantes({ plan: "premium" }, 1), 0);
+test("las historias restantes respetan el máximo del mes y el del día", () => {
+  const quedan = (plan, usados, hoy) => restantes(plan && { plan }, usados, hoy).quedan;
+  assert.equal(quedan(null, 0, 0), 0);
+  // La prueba: 3 en total, sin máximo por día.
+  assert.equal(quedan("prueba", 0, 0), 3);
+  assert.equal(quedan("prueba", 2, 2), 1);
+  assert.equal(quedan("prueba", 3, 3), 0);
+  // Básico: 8 al mes y 2 al día.
+  assert.equal(quedan("basico", 0, 0), 2);
+  assert.equal(quedan("basico", 2, 2), 0);
+  assert.equal(quedan("basico", 7, 0), 1);
+  assert.equal(quedan("basico", 8, 0), 0);
+  // Premium: 30 al mes y 5 al día.
+  assert.equal(quedan("premium", 0, 0), 5);
+  assert.equal(quedan("premium", 4, 4), 1);
+  assert.equal(quedan("premium", 5, 5), 0);
+  assert.equal(quedan("premium", 28, 0), 2);
+  assert.equal(quedan("premium", 30, 0), 0);
+  assert.deepEqual(restantes({ plan: "basico" }, 3, 2), { mes: 5, hoy: 0, quedan: 0 });
 });
 
 test("el estado de Stripe decide el acceso", () => {

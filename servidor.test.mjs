@@ -53,5 +53,9 @@ test("la API no se guarda en caché y rechaza datos mal formados", async () => {
   assert.equal(await pedir("/api/voz", { historia: crypto.randomUUID(), pagina: 0, voz: "__proto__" }), 400);
   assert.equal(await pedir("/api/repintar", { historia: crypto.randomUUID(), pagina: 99 }), 400);
   assert.equal(await pedir("/api/compartir", { historia: "1 or 1=1" }), 400);
+  // Sin estar en la prueba gratis no hay prueba que terminar ni nada que cobrar.
+  assert.equal(await pedir("/api/empezar-ya", {}), 409);
+  assert.equal((await fetch(`${web}/api/prueba`)).status, 404);
+  assert.equal(await pedir("/api/pago", { producto: "__proto__", empezarYa: true }), 400);
   assert.equal((await fetch(`${web}/api/publica/voz?e=abcdefgh&pagina=0&voz=constructor`)).status, 404);
 });

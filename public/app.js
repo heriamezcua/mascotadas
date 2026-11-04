@@ -61,7 +61,8 @@ function pintarIdeas() {
     return boton;
   }));
 }
-const LIMITES = { prueba: 3, basico: 8, premium: 1 };
+// Igual que en planes.mjs: historias por periodo (la prueba o cada mes) y, si hay, cuántas como mucho al día.
+const LIMITES = { prueba: { mes: 3 }, basico: { mes: 8, dia: 2 }, premium: { mes: 30, dia: 5 } };
 const NOMBRES_PLAN = { prueba: "Prueba gratis", basico: "Básico", premium: "Premium" };
 // Lo que se puede comprar (igual que en pagos.mjs): nivel y anual deciden a qué plan se puede cambiar.
 const PRODUCTOS = {
@@ -262,19 +263,23 @@ function pintarSaldo() {
     $("saldo-plan").textContent = "Sin plan ·";
     return;
   }
-  const limite = LIMITES[plan];
-  $("t-saldo").textContent = plan === "premium"
-    ? quedan ? "Hoy le queda 1 historia nueva" : "Hoy ya ha estrenado su historia"
-    : `Le ${quedan === 1 ? "queda 1 historia nueva" : `quedan ${quedan} historias nuevas`}`;
-  $("saldo-de").textContent = plan === "premium" ? "cada día" : `de ${limite}`;
+  const limite = LIMITES[plan].mes;
+  const { mes, hoy } = estado.cuenta;
+  $("t-saldo").textContent = !mes
+    ? plan === "prueba" ? "Ya ha usado sus historias de prueba" : "Ya ha usado las historias de este mes"
+    : !hoy
+      ? `Por hoy ya está · le ${mes === 1 ? "queda 1" : `quedan ${mes}`} este mes`
+      : `Le ${mes === 1 ? "queda 1 historia nueva" : `quedan ${mes} historias nuevas`}${plan === "prueba" ? "" : " este mes"}`;
+  $("saldo-de").textContent = `de ${limite}`;
   $("saldo-barra").style.gridTemplateColumns = `repeat(${limite}, minmax(0, 1fr))`;
-  $("saldo-barra").setAttribute("aria-label", `${limite - quedan} de ${limite} historias usadas`);
+  $("saldo-barra").setAttribute("aria-label", `${limite - mes} de ${limite} historias usadas`);
   $("saldo-barra").replaceChildren(...Array.from({ length: limite }, (_, i) => {
     const trozo = document.createElement("span");
-    if (i >= limite - quedan) trozo.className = "libre";
+    if (i >= limite - mes) trozo.className = "libre";
     return trozo;
   }));
-  $("saldo-plan").textContent = `Plan ${NOMBRES_PLAN[plan]}${extra ? ` · y ${historiasDePack(extra)}` : ""} ·`;
+  const alDia = LIMITES[plan].dia ? ` · hasta ${LIMITES[plan].dia} al día` : "";
+  $("saldo-plan").textContent = `Plan ${NOMBRES_PLAN[plan]}${alDia}${extra ? ` · y ${historiasDePack(extra)}` : ""} ·`;
 }
 
 // Las miniaturas cargan su imagen solo al aparecer en pantalla; luego sirve también al abrir la historia.
@@ -392,14 +397,14 @@ function pintarResumen() {
 }
 
 function pintarUsara() {
-  const { plan, quedan, extra, pruebaUsada } = estado.cuenta ?? {};
+  const { plan, quedan, mes, extra, pruebaUsada } = estado.cuenta ?? {};
   $("usara").textContent = plan && quedan
-    ? plan === "premium" ? "Usará su historia nueva de hoy" : `Usará 1 de sus ${quedan} historias nuevas`
+    ? `Usará 1 de sus ${mes} historias nuevas`
     : extra
       ? `Usará 1 de sus ${historiasDePack(extra)}`
       : plan
-        ? "Ya ha usado sus historias nuevas"
-        : pruebaUsada ? "Elija un plan o un pack de historias" : "3 días gratis · luego 4,99 €/mes";
+        ? mes ? "Por hoy ya está: mañana podrá crear más" : "Ya ha usado sus historias nuevas"
+        : pruebaUsada ? "Elija un plan o un pack de historias" : "3 días gratis · luego desde 4,99 €/mes";
 }
 
 function marcarError(campo, hay) {
@@ -514,7 +519,6 @@ function continuar() {
   pedirHistoria(borrador);
 }
 
-// Stripe avisa al servidor por su cuenta: el plan puede tardar unos segundos en llegar.
 // Al volver de pagar, Stripe avisa al servidor unos segundos después: se espera a ver el cambio en la cuenta.
 async function esperarPlan() {
   const antes = leerAntesDePagar();
@@ -1027,7 +1031,7 @@ function pintarPago() {
   if (!producto) return;
   const { plan, pruebaUsada } = estado.cuenta ?? {};
   const cambio = Boolean(plan) && !producto.historias;
-  const conPrueba = !plan && !pruebaUsada && producto.nivel === 1;
+  const conPrueba = !plan && !pruebaUsada; // La prueba gratis vale para el Básico y para Premium.
   const dentroDe = (dias) => fecha(new Date(Date.now() + dias * 86400000));
   $("muro").querySelector(".resumen-pago").hidden = cambio;
   $("muro-cambio").hidden = !cambio;
@@ -1073,15 +1077,39 @@ function abrirMuro(pestana = "mes") {
 function abrirAgotadas() {
   cerrarVentanas();
   const { plan } = estado.cuenta;
-  const textos = {
-    prueba: ["Ya ha usado sus 3 historias de prueba", "Cuando acabe la prueba tendrá 8 nuevas cada mes. Si no quiere esperar, compre historias sueltas o pase a Premium."],
-    basico: ["Ya ha usado sus 8 historias de este mes", "Tendrá 8 nuevas cuando empiece su próximo mes. Si no quiere esperar, compre historias sueltas."],
-    premium: ["Hoy ya ha estrenado su historia", "Mañana tendrá otra nueva. Si no quiere esperar, compre historias sueltas."],
-  }[plan];
+  const { mes } = estado.cuenta;
+  const textos = plan === "prueba"
+    ? ["Ya ha usado sus 3 historias de prueba", "Cuando acabe la prueba empezará su plan, con historias nuevas cada mes. Si no quiere esperar, puede empezarlo ya."]
+    : mes
+      ? [`Por hoy ya ha creado ${LIMITES[plan].dia} historias`, "Mañana podrá crear más. Si no quiere esperar, compre historias sueltas."]
+      : [`Ya ha usado sus ${LIMITES[plan].mes} historias de este mes`, "Tendrá nuevas cuando empiece su próximo mes. Si no quiere esperar, compre historias sueltas."];
   $("agotadas-titulo").textContent = textos[0];
   $("agotadas-texto").textContent = textos[1];
   $("a-premium").hidden = plan === "premium";
+  $("a-empezar").hidden = plan !== "prueba";
+  $("a-pack").className = `btn ${plan === "prueba" ? "btn-discreto" : "btn-p"} ancho-total`; // Un solo botón principal.
   $("agotadas").showModal();
+}
+
+// Terminar la prueba antes de tiempo: se enseña qué plan empieza y cuánto se cobra hoy, y solo se cobra al confirmar.
+async function abrirEmpezar() {
+  cerrarVentanas();
+  $("empezar-texto").textContent = "Un momento…";
+  $("empezar-error").hidden = true;
+  $("empezar-confirmar").disabled = true;
+  $("empezar").showModal();
+  const respuesta = await api("/api/prueba").catch(() => null);
+  if (!respuesta?.ok) {
+    $("empezar-texto").textContent = "No hemos podido consultar su plan. Inténtelo otra vez.";
+    return;
+  }
+  const { nivel, anual, importe } = await respuesta.json();
+  const nombre = `${nivel === 2 ? "Premium" : "Básico"}${anual ? " anual" : ""}`;
+  const limites = LIMITES[nivel === 2 ? "premium" : "basico"];
+  $("empezar-texto").textContent = `Termina su prueba gratis y empieza su plan ${nombre}: hoy se le cobran ${euros(importe / 100)} `
+    + `y tendrá ya sus ${limites.mes} historias del mes, hasta ${limites.dia} al día. Después se renueva ${anual ? "cada año" : "cada mes"}.`;
+  $("empezar-confirmar").textContent = `Empezar y pagar ${euros(importe / 100)}`;
+  $("empezar-confirmar").disabled = false;
 }
 
 function abrirCuenta() {
@@ -1090,12 +1118,15 @@ function abrirCuenta() {
   $("cuenta-plan").textContent = !plan ? "Sin plan"
     : plan === "prueba" ? `Prueba gratis · luego ${anual ? "49,99 €/año" : "4,99 €/mes"}`
       : `${NOMBRES_PLAN[plan]}${anual ? " anual" : ""}${precio}`;
-  $("cuenta-historias").textContent = !plan ? "—" : plan === "premium" ? (quedan ? "Hoy le queda 1" : "Hoy ya la ha usado") : `Le quedan ${quedan} de ${LIMITES[plan]}`;
+  const { mes } = estado.cuenta ?? {};
+  const alDia = LIMITES[plan]?.dia ? ` · hasta ${LIMITES[plan].dia} al día` : "";
+  $("cuenta-historias").textContent = !plan ? "—" : `Le quedan ${mes} de ${LIMITES[plan].mes}${plan === "prueba" ? "" : " este mes"}${alDia}`;
   $("cuenta-extra-fila").hidden = !extra;
   if (extra) $("cuenta-extra").textContent = `${extra} · hasta el ${fecha(new Date(extraCaducan))}`;
   $("cuenta-email").textContent = email ?? "Modo local";
   $("cuenta-premium").hidden = !plan || !Object.keys(PRODUCTOS).some((nombre) => !PRODUCTOS[nombre].historias && puedeComprar(nombre));
   $("cuenta-elegir").hidden = Boolean(plan);
+  $("cuenta-empezar").hidden = plan !== "prueba";
   $("gestionar").hidden = !(plan || cliente) || estado.config.local;
   $("salir").hidden = estado.config.local;
   $("cuenta-error").hidden = true;
@@ -1251,6 +1282,28 @@ $("pagar").addEventListener("click", async () => {
 });
 $("a-premium").addEventListener("click", () => abrirMuro("mes"));
 $("a-pack").addEventListener("click", () => abrirMuro("packs"));
+$("a-empezar").addEventListener("click", abrirEmpezar);
+$("cuenta-empezar").addEventListener("click", abrirEmpezar);
+$("empezar-confirmar").addEventListener("click", async () => {
+  $("empezar-confirmar").disabled = true;
+  $("empezar-error").hidden = true;
+  const respuesta = await api("/api/empezar-ya", { method: "POST" }).catch(() => null);
+  if (!respuesta?.ok) {
+    const { error } = (await respuesta?.json().catch(() => null)) ?? {};
+    $("empezar-error").textContent = error ?? "No hemos podido empezar su plan. Inténtelo otra vez.";
+    $("empezar-error").hidden = false;
+    $("empezar-confirmar").disabled = false;
+    return;
+  }
+  // Stripe avisa al servidor del cobro en unos segundos: se espera a ver el plan nuevo y se sigue donde estaba.
+  $("empezar-texto").textContent = "Pago hecho. Preparando su plan…";
+  for (let intento = 0; intento < 15 && estado.cuenta?.plan === "prueba"; intento++) {
+    await esperar(1000);
+    await refrescar();
+  }
+  cerrarVentanas();
+  continuar();
+});
 
 $("compartir").addEventListener("click", prepararCompartir);
 // El menú de compartir del móvil necesita un toque reciente: por eso va en su propio botón, ya con la imagen hecha.

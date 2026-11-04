@@ -14,7 +14,7 @@ const { narrar, hayVoz, vocesGuardadas, audioGuardado, VOCES } = await import(".
 const { pintarFondos, pintarFicha, pintarEscena, hayImagenes, claveFicha, ESPECIES } = await import("./fondos.mjs");
 const datos = await import("./datos.mjs");
 const pagos = await import("./pagos.mjs");
-const { inicioDelPeriodo, restantes } = await import("./planes.mjs");
+const { inicioDelDia, inicioDelPeriodo, restantes } = await import("./planes.mjs");
 
 const PUERTO = Number(process.env.PORT || 4173);
 // Los archivos de la web se piden con la versión en la ruta (/v/<versión>/app.js): cambia en cada publicación,
@@ -55,7 +55,7 @@ const CABECERAS = {
 // Límite de peticiones por IP y minuto, para frenar a quien intente forzar códigos, gastar la IA o tumbar la web.
 // Las acciones caras tienen su propio límite, más bajo.
 const LIMITES = { general: 300, caras: 20 };
-const CARAS = new Set(["POST /api/historia", "POST /api/repintar", "POST /api/voz", "POST /api/pago", "POST /api/portal", "POST /api/compartir", "DELETE /api/cuenta"]);
+const CARAS = new Set(["POST /api/historia", "POST /api/repintar", "POST /api/voz", "POST /api/pago", "POST /api/empezar-ya", "POST /api/portal", "POST /api/compartir", "DELETE /api/cuenta"]);
 const contadores = new Map();
 setInterval(() => contadores.clear(), 60000).unref();
 
@@ -194,11 +194,20 @@ const responder = (res, codigo, datosRespuesta) => {
   res.end(JSON.stringify(datosRespuesta));
 };
 
-// quedan: historias del plan en este periodo; extra: las de packs que siguen valiendo.
+// quedan: historias del plan que puede crear ahora (lo que le quede del mes, sin pasar del máximo de hoy);
+// mes y hoy, cada límite por separado; extra: las de packs que siguen valiendo.
 async function cuentaDe(usuario) {
   const perfil = await datos.leerPerfil(usuario.id);
-  const usados = perfil.plan ? await datos.contarHistorias(usuario.id, inicioDelPeriodo(perfil)) : 0;
-  return { perfil, quedan: restantes(perfil, usados), extra: datos.extraDe(perfil) };
+  const inicio = perfil.plan ? inicioDelPeriodo(perfil) : null;
+  // El día cuenta desde las 00:00 o desde que empezó el plan actual, lo que sea más tarde: al pasar de la prueba
+  // (o del Básico) a un plan de pago, las historias de antes no gastan el máximo de ese día.
+  const [usados, usadosHoy] = inicio
+    ? await Promise.all([
+      datos.contarHistorias(usuario.id, inicio),
+      datos.contarHistorias(usuario.id, new Date(Math.max(inicioDelDia(), inicio))),
+    ])
+    : [0, 0];
+  return { perfil, ...restantes(perfil, usados, usadosHoy), extra: datos.extraDe(perfil) };
 }
 
 const rutas = {
@@ -213,13 +222,15 @@ const rutas = {
   }),
 
   "GET /api/yo": async (req, res, usuario) => {
-    const { perfil, quedan, extra } = await cuentaDe(usuario);
+    const { perfil, quedan, mes, hoy, extra } = await cuentaDe(usuario);
     const historias = await datos.listarHistorias(usuario.id);
     responder(res, 200, {
       email: usuario.email,
       plan: perfil.plan ?? null,
       anual: Boolean(perfil.anual),
       quedan,
+      mes,
+      hoy,
       extra,
       extraCaducan: extra ? perfil.extra_caducan : null,
       cliente: Boolean(perfil.stripe_customer), // Tiene facturas que ver en el portal de Stripe.
@@ -331,6 +342,22 @@ const rutas = {
     } catch (error) {
       if (error.status !== 409) throw error;
       responder(res, 409, { error: error.message });
+    }
+  },
+
+  // Terminar la prueba antes de tiempo: primero se enseña qué se cobrará y, al confirmar, se cobra.
+  "GET /api/prueba": async (req, res, usuario) => {
+    const plan = await pagos.planDeLaPrueba(usuario);
+    return plan ? responder(res, 200, plan) : responder(res, 404, { error: "No está en la prueba gratis" });
+  },
+
+  "POST /api/empezar-ya": async (req, res, usuario) => {
+    try {
+      await pagos.empezarYa(usuario);
+      responder(res, 200, { ok: true });
+    } catch (error) {
+      if (![402, 409].includes(error.status)) throw error;
+      responder(res, error.status, { error: error.message });
     }
   },
 
