@@ -13,6 +13,7 @@ const { escribirHistoria, hayIA } = await import("./historias.mjs");
 const { narrar, hayVoz, vocesGuardadas, audioGuardado, VOCES } = await import("./voz.mjs");
 const { pintarFondos, pintarFicha, pintarEscena, hayImagenes, claveFicha, ESPECIES } = await import("./fondos.mjs");
 const datos = await import("./datos.mjs");
+const { usarCuento, historiaDelCuento, fondoDelCuento, vozDelCuento } = await import("./cuento.mjs");
 const pagos = await import("./pagos.mjs");
 const { inicioDelDia, inicioDelPeriodo, restantes } = await import("./planes.mjs");
 
@@ -215,8 +216,10 @@ async function cuentaDe(usuario) {
 const rutas = {
   "GET /api/estado": async (req, res) => responder(res, 200, {
     ia: hayIA(),
-    voz: hayVoz(),
-    imagenes: hayImagenes(),
+    // Con el cuento pregrabado hay voces e ilustraciones aunque no haya claves de la IA.
+    voz: hayVoz() || usarCuento(),
+    imagenes: hayImagenes() || usarCuento(),
+    cuento: usarCuento(),
     local: datos.local,
     demo: pagos.demo,
     supabaseUrl: process.env.SUPABASE_URL ?? null,
@@ -244,7 +247,7 @@ const rutas = {
 
   "POST /api/historia": async (req, res, usuario) => {
     if (generando.has(usuario.id)) return responder(res, 429, { error: "Ya estamos escribiendo una historia." });
-    if (pagos.demo && (await datos.historiasDesde(inicioDelDia())) >= TOPE_DEMO) {
+    if (pagos.demo && !usarCuento() && (await datos.historiasDesde(inicioDelDia())) >= TOPE_DEMO) {
       return responder(res, 503, { error: "demo", mensaje: "La demo ha llegado a su máximo de historias de hoy. Vuelva mañana." });
     }
     const mascota = limpiar(await leerCuerpo(req));
@@ -259,12 +262,15 @@ const rutas = {
         dePack = await datos.gastarExtra(usuario.id);
         if (!dePack) return responder(res, 402, { error: "limite", plan: perfil.plan ?? null });
       }
-      const { titulo, paginas, modo } = await escribirHistoria(mascota);
-      const conFondo = paginas.map((pagina) => ({ ...pagina, imagen: hayImagenes() && pagina.fondo ? "escena" : false }));
+      // Sin IA, todas las historias son el cuento pregrabado; se espera un poco para que se vea el proceso.
+      const cuento = usarCuento();
+      if (cuento) await new Promise((listo) => setTimeout(listo, 2500));
+      const { titulo, paginas, modo } = cuento ? historiaDelCuento() : await escribirHistoria(mascota);
+      const conFondo = cuento ? paginas : paginas.map((pagina) => ({ ...pagina, imagen: hayImagenes() && pagina.fondo ? "escena" : false }));
       const historia = await datos.crearHistoria(usuario.id, { titulo, paginas: conFondo, modo, mascota, de_pack: dePack });
       dePack = false; // Ya está creada: la historia del pack está bien gastada.
       // Los fondos tardan minutos: la historia se abre ya y cada fondo aparece en cuanto está pintado.
-      if (hayImagenes()) enMarcha(pintarEnSegundoPlano(usuario.id, historia));
+      if (hayImagenes() && !cuento) enMarcha(pintarEnSegundoPlano(usuario.id, historia));
       responder(res, 200, historia);
     } finally {
       // Si algo falló después de descontarla, se devuelve.
@@ -294,10 +300,11 @@ const rutas = {
     if (!UUID.test(historia) || !esPagina(pagina)) {
       return responder(res, 400, { error: "No válido" });
     }
-    const imagen = await datos.leerFondo(usuario.id, historia, pagina);
+    let imagen = await datos.leerFondo(usuario.id, historia, pagina);
     if (!imagen) {
-      const fallido = (await datos.leerHistoria(historia, usuario.id))?.paginas[pagina]?.imagen === false;
-      return responder(res, fallido ? 410 : 404, { error: "No existe" });
+      const guardada = await datos.leerHistoria(historia, usuario.id);
+      if (guardada?.modo === "cuento") imagen = await fondoDelCuento(pagina);
+      if (!imagen) return responder(res, guardada?.paginas[pagina]?.imagen === false ? 410 : 404, { error: "No existe" });
     }
     res.writeHead(200, { "Content-Type": "image/webp", "Cache-Control": "private, max-age=604800", ...CABECERAS });
     res.end(imagen);
@@ -314,14 +321,18 @@ const rutas = {
     const texto = plan || historia?.de_pack ? historia?.paginas[pagina]?.texto : null;
     if (!texto) return responder(res, 404, { error: "No existe" });
     const pase = randomUUID();
-    pases.set(pase, { usuario: usuario.id, texto, voz, caduca: Date.now() + 10 * 60000 });
+    pases.set(pase, { usuario: usuario.id, texto, voz, pagina, cuento: historia.modo === "cuento", caduca: Date.now() + 10 * 60000 });
     responder(res, 200, { url: `/api/escuchar?pase=${pase}` });
   },
 
   "GET /api/escuchar": async (req, res) => {
     const pase = pases.get(new URL(req.url, "http://localhost").searchParams.get("pase"));
     if (!pase || pase.caduca < Date.now()) return responder(res, 404, { error: "No existe" });
-    const { audio, flujo, guardar } = await narrar(pase.usuario, pase.texto, pase.voz);
+    // El cuento pregrabado ya tiene sus narraciones: no se llama a ElevenLabs.
+    const { audio, flujo, guardar } = pase.cuento
+      ? { audio: await vozDelCuento(pase.pagina, pase.voz) }
+      : await narrar(pase.usuario, pase.texto, pase.voz);
+    if (pase.cuento && !audio) return responder(res, 404, { error: "No existe" });
     if (audio) {
       res.writeHead(200, { "Content-Type": "audio/mpeg", "Content-Length": audio.length, ...CABECERAS });
       return res.end(audio);
@@ -392,7 +403,9 @@ const rutas = {
   "GET /api/publica": async (req, res) => {
     const historia = await compartidaDe(req);
     if (!historia) return responder(res, 404, { error: "No existe" });
-    const voces = hayVoz() ? await vocesGuardadas(historia.usuario, historia.paginas.map((p) => p.texto)) : [];
+    const voces = historia.modo === "cuento"
+      ? historia.paginas.map(() => Object.keys(VOCES))
+      : hayVoz() ? await vocesGuardadas(historia.usuario, historia.paginas.map((p) => p.texto)) : [];
     responder(res, 200, {
       titulo: historia.titulo,
       mascota: { nombre: historia.mascota.nombre, especie: historia.mascota.especie },
@@ -403,7 +416,8 @@ const rutas = {
   "GET /api/publica/fondo": async (req, res) => {
     const historia = await compartidaDe(req);
     const pagina = paginaDe(req, historia);
-    const imagen = pagina === null ? null : await datos.leerFondo(historia.usuario, historia.id, pagina);
+    const imagen = pagina === null ? null
+      : historia.modo === "cuento" ? await fondoDelCuento(pagina) : await datos.leerFondo(historia.usuario, historia.id, pagina);
     if (!imagen) return responder(res, 404, { error: "No existe" });
     const enJpeg = new URL(req.url, "http://localhost").searchParams.get("formato") === "jpg";
     res.writeHead(200, { "Content-Type": enJpeg ? "image/jpeg" : "image/webp", "Cache-Control": "public, max-age=86400", ...CABECERAS });
@@ -414,7 +428,8 @@ const rutas = {
     const historia = await compartidaDe(req);
     const pagina = paginaDe(req, historia);
     const voz = new URL(req.url, "http://localhost").searchParams.get("voz");
-    const audio = pagina === null || !esVoz(voz) ? null : await audioGuardado(historia.usuario, historia.paginas[pagina].texto, voz);
+    const audio = pagina === null || !esVoz(voz) ? null
+      : historia.modo === "cuento" ? await vozDelCuento(pagina, voz) : await audioGuardado(historia.usuario, historia.paginas[pagina].texto, voz);
     if (!audio) return responder(res, 404, { error: "No existe" });
     res.writeHead(200, { "Content-Type": "audio/mpeg", "Content-Length": audio.length, "Cache-Control": "public, max-age=86400", ...CABECERAS });
     res.end(audio);

@@ -1439,6 +1439,7 @@ async function iniciar() {
   estado.config = await (await fetch("/api/estado")).json();
   $("narracion").hidden = !estado.config.voz;
   $("aviso-demo").hidden = !estado.config.demo;
+  $("aviso-cuento").hidden = $("aviso-cuento-en").hidden = !estado.config.cuento;
 
 
   if (!estado.config.local) {

@@ -1,0 +1,71 @@
+{
+  "titulo": "Toby y el Gran Tesoro de los Calcetines",
+  "mascota": {
+    "nombre": "Toby",
+    "especie": "perro",
+    "personalidad": "glotón",
+    "mania": "esconde calcetines debajo del sofá y finge que no ha sido él",
+    "tono": "comedia",
+    "color": "#c98a4b",
+    "collar": "#e63946"
+  },
+  "paginas": [
+    {
+      "texto": "Toby tenía un secreto: debajo del sofá guardaba cuarenta y siete calcetines desparejados. Cuando le preguntaban, ponía cara de perro inocente y miraba al techo, como si los calcetines hubieran huido solos. Pero aquella mañana, al meter el hocico, descubrió algo terrible: faltaba su favorito, el de rayas con olor a croqueta. Alguien le había robado. Y eso, señores, era intolerable.",
+      "lugar": "habitacion",
+      "momento": "dia",
+      "objetos": [
+        "tesoro"
+      ],
+      "fondo": "A cozy Spanish living room in bright morning light, sunbeams crossing a worn green sofa. Beneath it, a huge hidden pile of mismatched socks spills out: polka dots, argyle, Christmas patterns. A small empty gap in the pile marks where one striped sock is missing. A dog bowl with crumbs sits nearby, a rug slightly rumpled, a laundry basket tipped over by the door."
+    },
+    {
+      "texto": "Siguiendo un rastro de migas de croqueta, Toby salió al parque como un detective con hambre. Olfateó un banco, un pino y, por si acaso, el bocadillo de un señor. Para disimular, fingió que no había sido él. Entonces lo vio: colgado de una rama, ondeando como una bandera pirata, ¡su calcetín de rayas! Y debajo, una pista: una pluma de gaviota.",
+      "lugar": "bosque",
+      "momento": "dia",
+      "objetos": [
+        "mariposas"
+      ],
+      "fondo": "A leafy city park woodland at midday, dappled sunlight through tall pine trees. A striped sock hangs from a high branch, fluttering like a tiny pirate flag. Below, a trail of croquette crumbs leads across a dirt path to a wooden bench with a half-eaten sandwich in paper. A single white seagull feather lies on the grass, butterflies drifting around wildflowers."
+    },
+    {
+      "texto": "Toby corrió hasta el puerto, porque las gaviotas siempre van al puerto, igual que él siempre va a la cocina. Allí, la Capitana Gaviota había montado un barco entero con calcetines robados de media ciudad. Toby se indignó muchísimo. Robar calcetines estaba fatal. Esconderlos debajo del sofá, en cambio, era una tradición familiar respetabilísima.",
+      "lugar": "mar",
+      "momento": "atardecer",
+      "objetos": [
+        "barco"
+      ],
+      "fondo": "A small Mediterranean harbour at sunset, orange and pink sky reflected on calm water. A ramshackle little boat is stitched together from hundreds of colourful stolen socks, with a sail made of patched knee-high socks. Fishing nets, wooden crates of sardines and a striped sock tied to the mast as a flag. Lanterns begin to glow along the stone pier."
+    },
+    {
+      "texto": "El barco zarpó y Toby, sin pensarlo, saltó a bordo... justo encima de la caja de sardinas. Se comió tres. Bueno, doce. Cuando la gaviota lo miró, Toby puso su famosa cara de 'yo no he sido', con una cola de sardina saliéndole por la boca. Fue tan convincente que la gaviota dudó de sí misma durante un minuto entero.",
+      "lugar": "mar",
+      "momento": "noche",
+      "objetos": [
+        "barco",
+        "farol"
+      ],
+      "fondo": "Open sea at night under a full moon, silver light on gentle waves. The deck of the sock-made boat, with an old brass lantern swinging from the mast casting warm light. An open wooden crate of sardines, nearly empty, fish tails scattered on the planks. Piles of colourful socks heaped like treasure in the corners, a small coiled rope beside them."
+    },
+    {
+      "texto": "El barco llegó a una isla con un castillo hecho de cestos de la colada. En la sala del trono, montañas de calcetines brillaban como oro. Toby encontró el suyo de rayas en lo alto del montón. Lo cogió con los dientes, muy digno, y de paso se llevó otros seis. Por si acaso. Un perro precavido vale por dos.",
+      "lugar": "castillo",
+      "momento": "noche",
+      "objetos": [
+        "tesoro",
+        "farol"
+      ],
+      "fondo": "A whimsical castle throne room built from stacked wicker laundry baskets, lit by flickering lanterns at night. Towering mountains of socks glitter like gold coins in the center. A throne made of a giant clothes peg and folded towels. A striped sock rests at the very top of the pile. Clothes lines crisscross the ceiling like bunting, moonlight through round windows."
+    },
+    {
+      "texto": "Al amanecer, Toby volvió a casa y metió todos los calcetines bajo el sofá: ya eran cincuenta y cuatro. Cuando su humana preguntó dónde estaban sus calcetines nuevos, Toby miró al techo con cara de santo. Nadie sabrá jamás la verdad. Salvo tú. Y tus amigos, si les enseñas esta historia. Pero shhh... que Toby dice que no ha sido él.",
+      "lugar": "habitacion",
+      "momento": "atardecer",
+      "objetos": [
+        "tesoro",
+        "nube"
+      ],
+      "fondo": "The same Spanish living room bathed in warm golden evening light, the green sofa now bulging with an even bigger hoard of socks spilling out, a striped sock proudly on top. A few seagull feathers and sea salt marks on the rug, an empty sardine tin by the door, a fluffy cloud visible through the window, a half-open sock drawer completely empty."
+    }
+  ]
+}

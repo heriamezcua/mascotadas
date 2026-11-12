@@ -4,6 +4,7 @@
 A full-stack SaaS built end to end: product, payments, infrastructure, security and performance.
 
 **Live demo:** [mascotadas.com](https://mascotadas.com) · payments run in Stripe test mode, use card `4242 4242 4242 4242`.
+To keep the public demo free to run, it has no AI keys: every pet gets the same pre-generated sample story (text, 6 illustrations and 4 narrations, in `cuento/`), served through exactly the same flow. With API keys set, the real pipeline runs.
 The UI is in Spanish (the target market); code comments are in Spanish too.
 
 ![Story reader with an AI illustration](docs/screenshots/reader.jpg)
@@ -94,7 +95,7 @@ flowchart LR
 
 ## Run it locally
 
-Everything degrades gracefully, so it runs **without any API key**: without Supabase it keeps data in memory, without AI keys it writes sample stories with SVG scenes, and without Stripe it simulates payments.
+Everything degrades gracefully, so it runs **without any API key**: without Supabase it keeps data in memory, without AI keys it serves the pre-generated sample story, and without Stripe it simulates payments.
 
 ```bash
 npm install
@@ -112,6 +113,7 @@ To use the real services, copy `.env.example` to `.env.local`, fill in the keys,
 | `historias.mjs` | Story writing with Claude (structured JSON output) |
 | `fondos.mjs` | Character sheet and scene illustrations with Gemini, retries and time-outs |
 | `voz.mjs` | Narration with ElevenLabs: streaming and caching by content hash |
+| `cuento.mjs`, `cuento/` | Pre-generated sample story used by the free public demo |
 | `pagos.mjs` | Stripe: checkout, packs, upgrades, trial end, webhooks |
 | `planes.mjs` | Plan limits and billing-period maths (pure functions, unit-tested) |
 | `datos.mjs` | Supabase data access, with an in-memory fallback for local development |
