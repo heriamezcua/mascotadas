@@ -1,0 +1,46 @@
+# Despliegue en Render (plan gratuito). Render lee este archivo al crear el servicio desde «New → Blueprint».
+services:
+  - type: web
+    name: mascotadas
+    runtime: node
+    plan: free
+    region: frankfurt # Cerca de Supabase, que está en Europa.
+    buildCommand: npm ci
+    startCommand: node servidor.mjs
+    healthCheckPath: /api/estado
+    autoDeployTrigger: checksPass # Solo publica si pasan los tests de GitHub.
+    maxShutdownDelaySeconds: 180 # Tiempo para terminar lo que esté en marcha antes de apagarse.
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "24"
+      - key: WEB_URL
+        value: https://mascotadas.com
+      # Sin claves de IA: la demo sirve el cuento pregrabado y no gasta nada.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRECIO_BASICO
+        sync: false
+      - key: STRIPE_PRECIO_PREMIUM
+        sync: false
+      - key: STRIPE_PRECIO_BASICO_ANUAL
+        sync: false
+      - key: STRIPE_PRECIO_PREMIUM_ANUAL
+        sync: false
+      - key: STRIPE_PACK_1
+        sync: false
+      - key: STRIPE_PACK_5
+        sync: false
+      - key: STRIPE_PACK_15
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false

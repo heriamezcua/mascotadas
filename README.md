@@ -34,15 +34,15 @@ While the illustrations are painted in the background, the reader plays a pet-tr
 | AI | **Claude** (text), **Gemini** (images), **ElevenLabs** (voice) | Best fit for each modality |
 | Payments | **Stripe** Checkout, Billing, Customer Portal, Tax | Subscriptions, trials, one-off packs, upgrades with proration |
 | Email | **Resend** (SMTP for Supabase Auth), Cloudflare Email Routing | Branded sign-in code emails from the own domain |
-| Hosting | **Railway** (EU West) behind **Cloudflare** (DNS, CDN, TLS, bot protection, cookieless analytics) | |
-| CI / ops | **GitHub Actions** (syntax, tests, `npm audit`), nightly encrypted DB backups, UptimeRobot | Railway only deploys when CI is green |
+| Hosting | **Render** (Frankfurt, free tier) behind **Cloudflare** (DNS, CDN, TLS, bot protection, cookieless analytics) | Free to run as a portfolio demo; previously Railway |
+| CI / ops | **GitHub Actions** (syntax, tests, `npm audit`), nightly encrypted DB backups, UptimeRobot | The host only deploys when CI is green |
 
 ## Architecture
 
 ```mermaid
 flowchart LR
   B[Browser<br/>vanilla JS] -->|HTTPS| CF[Cloudflare<br/>CDN · TLS · WAF]
-  CF --> S[Node server<br/>Railway EU]
+  CF --> S[Node server<br/>Render EU]
   B -->|sign-in| SA[Supabase Auth]
   S -->|service role| DB[(Postgres<br/>RLS deny-all)]
   S --> ST[(Storage<br/>images · audio)]
@@ -50,7 +50,7 @@ flowchart LR
   S --> G[Gemini<br/>illustrations]
   S --> E[ElevenLabs<br/>narration stream]
   S <-->|Checkout · webhooks| P[Stripe]
-  GH[GitHub Actions] -->|CI gate| R[Railway deploy]
+  GH[GitHub Actions] -->|CI gate| R[Render deploy]
   GH -->|nightly pg_dump, AES-256| BK[(Encrypted backups)]
 ```
 
@@ -88,7 +88,7 @@ flowchart LR
 - Moving the origin from US West to EU West cut server response time by ~2.5×.
 
 ### Reliability
-- **Graceful shutdown:** on `SIGTERM` the server stops accepting connections, finishes in-flight requests and running illustration jobs, then exits; Railway health checks and deploy overlap give zero-downtime releases.
+- **Graceful shutdown:** on `SIGTERM` the server stops accepting connections, finishes in-flight requests and running illustration jobs, then exits; health checks before switching traffic give zero-downtime releases.
 - AI calls have timeouts and exponential back-off; failed illustrations are retried in the background and repainted on demand while the reader waits.
 - Nightly `pg_dump` of the database, compressed and AES-256-encrypted, kept for 30 days.
 - Uptime monitoring on the home page and the health endpoint.

@@ -20,7 +20,7 @@ const { inicioDelDia, inicioDelPeriodo, restantes } = await import("./planes.mjs
 const PUERTO = Number(process.env.PORT || 4173);
 // Los archivos de la web se piden con la versión en la ruta (/v/<versión>/app.js): cambia en cada publicación,
 // así el navegador y Cloudflare pueden guardarlos un año sin servir nunca uno viejo.
-const VERSION = (process.env.RAILWAY_GIT_COMMIT_SHA || randomUUID()).slice(0, 8);
+const VERSION = (process.env.RENDER_GIT_COMMIT || process.env.RAILWAY_GIT_COMMIT_SHA || randomUUID()).slice(0, 8);
 const PRODUCCION = process.env.NODE_ENV === "production";
 const COMPRIMIBLES = new Set([".html", ".css", ".js", ".svg", ".txt", ".xml"]);
 const estaticos = new Map(); // En producción los archivos no cambian: se leen del disco una sola vez.
@@ -559,7 +559,7 @@ async function cerrar() {
   if (cerrando) return;
   cerrando = true;
   console.log(`Cerrando: termino ${trabajos.size} pintura(s) y las peticiones en marcha.`);
-  // Por si algo se queda colgado: Railway da 180 s (railway.json) y se sale un poco antes.
+  // Por si algo se queda colgado: el alojamiento da 180 s (render.yaml) y se sale un poco antes.
   setTimeout(() => process.exit(0), 170000).unref();
   const cerrado = new Promise((listo) => servidor.close(listo)); // No acepta más conexiones; espera a las abiertas.
   servidor.closeIdleConnections();
