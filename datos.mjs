@@ -121,6 +121,14 @@ export async function contarHistorias(usuario, desde) {
   return count;
 }
 
+// Historias creadas por todos los usuarios desde una fecha: el tope diario de la demo.
+export async function historiasDesde(desde) {
+  if (local) return memoria.historias.filter((c) => new Date(c.creado) >= desde).length;
+  const { count, error } = await supabase.from("historias").select("id", { count: "exact", head: true }).gte("creado", desde.toISOString());
+  if (error) throw new Error(error.message);
+  return count;
+}
+
 export async function actualizarHistoria(id, usuario, cambios) {
   if (local) return Object.assign(memoria.historias.find((c) => c.id === id), cambios);
   return comprobar(await supabase.from("historias").update(cambios).eq("id", id).eq("usuario", usuario).select().single());

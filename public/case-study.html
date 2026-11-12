@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mascotadas case study · Heri Amezcua</title>
+  <meta name="description" content="How I designed and built Mascotadas, a full-stack SaaS that writes, illustrates and narrates AI stories starring your pet.">
+  <meta property="og:title" content="Mascotadas · Full-stack case study">
+  <meta property="og:description" content="AI stories starring your pet: Node.js, Supabase, Stripe, Claude, Gemini and ElevenLabs, from idea to production.">
+  <meta property="og:image" content="https://mascotadas.com/img/compartir.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="icono.svg?v=2" type="image/svg+xml">
+  <link rel="stylesheet" href="/v/{{v}}/estilos.css">
+</head>
+<body class="en-legal">
+  <header class="cabecera">
+    <div class="cabecera-dentro">
+      <a class="marca" href="/" aria-label="Mascotadas, home">
+        <svg class="logo" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="19.5" fill="#FF8A2B" stroke="currentColor" stroke-width="3"/><g fill="#2B1840"><ellipse cx="22" cy="27.5" rx="7.5" ry="6"/><ellipse cx="12.5" cy="19" rx="3" ry="3.9"/><ellipse cx="18" cy="13" rx="3" ry="3.9"/><ellipse cx="26" cy="13" rx="3" ry="3.9"/><ellipse cx="31.5" cy="19" rx="3" ry="3.9"/></g></svg>
+        <span class="d">Mascotadas</span>
+      </a>
+      <a class="fantasma" href="/">Try the demo</a>
+    </div>
+  </header>
+
+  <main class="legal caso">
+    <p class="legal-etiqueta">Case study · Full-stack development</p>
+    <h1>Mascotadas: AI stories starring your pet</h1>
+    <p class="legal-fecha">Designed and built end to end by Heri Amezcua · November 2026</p>
+
+    <figure><img src="/img/case-study/reader.jpg" width="1600" height="1000" alt="Story reader: an AI illustration of a dog looking at socks under a sofa, next to the page text and a narration bar"></figure>
+
+    <dl class="tabla-datos cifras">
+      <div><dt>Role</dt><dd>Solo developer: product, back end, front end, infrastructure</dd></div>
+      <div><dt>Stack</dt><dd>Node.js 24, vanilla JS, Supabase, Stripe, Claude, Gemini, ElevenLabs, Railway, Cloudflare</dd></div>
+      <div><dt>Results</dt><dd>Lighthouse 99 on mobile · zero-downtime deploys · margin-positive pricing</dd></div>
+      <div><dt>Links</dt><dd><a href="/">Live demo</a> · <a href="https://github.com/heriamezcua/mascotadas">Source code</a></dd></div>
+    </dl>
+
+    <h2>The challenge</h2>
+    <p>Build a paid consumer product where every unit of work costs real money: each story calls three AI providers (text, images and voice). That meant the hard parts were not only the features, but making the product <strong>fast</strong>, <strong>safe to expose publicly</strong> and <strong>impossible to run at a loss</strong>, even for a customer who uses every story they pay for.</p>
+
+    <h2>What I built</h2>
+    <ul>
+      <li><strong>Story pipeline.</strong> Claude writes a 6-page story as structured JSON. Gemini first paints a character sheet of the pet and then every scene with that sheet as a reference, so the pet stays consistent. ElevenLabs narrates each page in four voices, streamed to the browser while it is generated and cached by content hash so no page is ever paid for twice.</li>
+      <li><strong>No dead waiting time.</strong> Illustrations take about a minute, so they are painted in the background; the story opens as soon as the first pages are ready, and a pet-trivia quiz with a streak record fills the wait.</li>
+      <li><strong>Accounts without passwords.</strong> Email one-time codes and Google sign-in with a nonce-protected ID-token flow.</li>
+      <li><strong>Monetisation.</strong> Two tiers, monthly or yearly, each with monthly and daily caps, a 3-day free trial, one-off story packs, in-app upgrades with proration and a "start my plan now" button.</li>
+      <li><strong>Sharing.</strong> Public read-only story links with rich previews, and a 1080×1920 image for Instagram Stories rendered on a canvas in the browser.</li>
+    </ul>
+
+    <div class="caso-galeria">
+      <img src="/img/case-study/create-mobile.jpg" width="780" height="1688" alt="Mobile form to describe the pet" loading="lazy">
+      <img src="/img/case-study/reader-mobile.jpg" width="780" height="1688" alt="Mobile story reader" loading="lazy">
+      <img src="/img/case-study/checkout-dialog.jpg" width="1600" height="1000" alt="Checkout dialog with monthly, yearly and pack tabs" loading="lazy">
+    </div>
+
+    <h2>Key decisions</h2>
+    <ul>
+      <li><strong>No framework.</strong> A plain <code>node:http</code> server (~550 lines) and vanilla JS gave full control over headers, streaming and caching, with no build step and a very light first load.</li>
+      <li><strong>The database is closed to the browser.</strong> Row-level security is on with no policies; only the server, with the service role, can read or write. Credits are spent through <code>SECURITY DEFINER</code> functions that public roles cannot execute, so two parallel requests can never spend the same story.</li>
+      <li><strong>Webhooks that cannot go wrong.</strong> The server re-fetches each subscription from Stripe instead of trusting the event payload, ignores events for older subscriptions and records each purchase once. A late or duplicated event never grants or removes access by mistake.</li>
+      <li><strong>Pricing designed from unit economics.</strong> I modelled the cost of a story (≈ €0.34) and sized every cap so the worst case still leaves a margin after VAT and fees. Yearly plans grant stories month by month from the billing anniversary, with month-end edge cases covered by tests.</li>
+    </ul>
+
+    <h2>Performance</h2>
+    <p>I measured first, then fixed what weighed most. The biggest win was not on the landing page: each AI illustration was a ~740 KB JPEG. Converting them to WebP on save (with lazy migration of old ones) cut them to ~123 KB, six times smaller with no visible difference.</p>
+    <dl class="tabla-datos cifras">
+      <div><dt>Lighthouse (mobile)</dt><dd>90 → <strong>99</strong></dd></div>
+      <div><dt>Largest Contentful Paint</dt><dd>3.4 s → <strong>2.0 s</strong></dd></div>
+      <div><dt>Server response</dt><dd>~2.5× faster after moving the origin to the EU, next to the database</dd></div>
+    </dl>
+    <p>Other changes: content-versioned asset URLs with one-year <code>immutable</code> caching, ETag and Brotli, variable fonts (6 files → 2) and lazy loading of non-critical modules.</p>
+
+    <h2>Security and reliability</h2>
+    <ul>
+      <li>Strict CSP and security headers, per-IP rate limiting, request timeouts and validation on every route, with integration tests that boot the real server and try path traversal and malformed input.</li>
+      <li>Graceful shutdown: on deploy the old instance finishes in-flight requests and running illustration jobs before exiting, behind health checks, for zero-downtime releases.</li>
+      <li>CI on every push (syntax, tests, dependency audit); the host only deploys green builds. Nightly AES-256-encrypted database backups, uptime monitoring and spend limits on every AI provider.</li>
+    </ul>
+
+    <h2>What I learned</h2>
+    <ul>
+      <li>With AI products, cost is part of the architecture: caching, limits and idempotency decide whether the business works.</li>
+      <li>Measuring before optimising pays off: the biggest performance problem was somewhere I did not expect.</li>
+      <li>Payment flows are mostly about the unhappy paths: declined cards, duplicated or late webhooks, and users who change plans halfway through a period.</li>
+    </ul>
+
+    <h2>Next steps I would take</h2>
+    <p>Gift cards and discount codes, lifecycle emails (welcome, trial ending, re-engagement), an internal metrics dashboard with AI cost per story, and an English version of the product.</p>
+  </main>
+
+  <footer class="pie">
+    <div class="ancho pie-dentro">
+      <p class="pie-nota">Mascotadas is a portfolio project · © 2026 Heri Amezcua</p>
+    </div>
+  </footer>
+</body>
+</html>

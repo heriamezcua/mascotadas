@@ -77,6 +77,8 @@ setInterval(() => {
   for (const [pase, { caduca }] of pases) if (caduca < Date.now()) pases.delete(pase);
 }, 60000).unref();
 const generando = new Set(); // Impide saltarse el máximo pidiendo dos historias a la vez.
+// En la demo pública, historias como mucho al día entre todos los visitantes: cada una cuesta dinero de IA.
+const TOPE_DEMO = Number(process.env.TOPE_DIARIO_DEMO || 30);
 
 // Si un fondo falla, se marca para que la página se quede con el escenario dibujado y no lo siga esperando.
 const REINTENTOS = [30000, 120000]; // Google se satura a ratos: las páginas que fallan se vuelven a pintar más tarde.
@@ -216,6 +218,7 @@ const rutas = {
     voz: hayVoz(),
     imagenes: hayImagenes(),
     local: datos.local,
+    demo: pagos.demo,
     supabaseUrl: process.env.SUPABASE_URL ?? null,
     supabaseAnon: process.env.SUPABASE_ANON_KEY ?? null,
     googleCliente: process.env.GOOGLE_CLIENT_ID ?? null, // Público: lo usa el botón de Google en el navegador.
@@ -241,6 +244,9 @@ const rutas = {
 
   "POST /api/historia": async (req, res, usuario) => {
     if (generando.has(usuario.id)) return responder(res, 429, { error: "Ya estamos escribiendo una historia." });
+    if (pagos.demo && (await datos.historiasDesde(inicioDelDia())) >= TOPE_DEMO) {
+      return responder(res, 503, { error: "demo", mensaje: "La demo ha llegado a su máximo de historias de hoy. Vuelva mañana." });
+    }
     const mascota = limpiar(await leerCuerpo(req));
     if (!mascota) return responder(res, 400, { error: "Faltan el nombre o su manía" });
 

@@ -5,6 +5,8 @@ import { esAnual, inicioDeSuscripcion, planDeSuscripcion } from "./planes.mjs";
 // Sin clave de Stripe, fuera de producción, los pagos se simulan: sirve para desarrollar y probar.
 export const simulado = !process.env.STRIPE_SECRET_KEY && process.env.NODE_ENV !== "production";
 const stripe = simulado ? null : new Stripe(process.env.STRIPE_SECRET_KEY);
+// Con las claves de prueba de Stripe la web funciona como demo: nadie paga de verdad (tarjeta 4242 4242 4242 4242).
+export const demo = simulado || process.env.STRIPE_SECRET_KEY.startsWith("sk_test_");
 const WEB = process.env.WEB_URL || "http://localhost:4173";
 const { STRIPE_WEBHOOK_SECRET } = process.env;
 

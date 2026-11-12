@@ -480,6 +480,12 @@ async function crear(mascota) {
       inicio();
       return abrirMuro();
     }
+    if (datos.error === "demo") {
+      $("progreso-caja").hidden = true;
+      $("fallo-texto").textContent = datos.mensaje;
+      $("fallo").hidden = false;
+      return;
+    }
     if (!respuesta.ok) throw new Error(datos.error);
     guardarBorrador(null);
     await Promise.all([refrescar(), esperarFondos(datos)]);
@@ -1432,6 +1438,7 @@ async function iniciar() {
   const vuelveDeEntrar = /access_token=|[?&]code=/.test(location.href);
   estado.config = await (await fetch("/api/estado")).json();
   $("narracion").hidden = !estado.config.voz;
+  $("aviso-demo").hidden = !estado.config.demo;
 
 
   if (!estado.config.local) {
