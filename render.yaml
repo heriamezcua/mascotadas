@@ -9,7 +9,6 @@ services:
     startCommand: node servidor.mjs
     healthCheckPath: /api/estado
     autoDeployTrigger: checksPass # Solo publica si pasan los tests de GitHub.
-    maxShutdownDelaySeconds: 180 # Tiempo para terminar lo que esté en marcha antes de apagarse.
     envVars:
       - key: NODE_ENV
         value: production

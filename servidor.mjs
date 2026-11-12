@@ -559,7 +559,7 @@ async function cerrar() {
   if (cerrando) return;
   cerrando = true;
   console.log(`Cerrando: termino ${trabajos.size} pintura(s) y las peticiones en marcha.`);
-  // Por si algo se queda colgado: el alojamiento da 180 s (render.yaml) y se sale un poco antes.
+  // Por si algo se queda colgado: se sale como mucho a los 170 s (el plan gratuito de Render corta antes, a los 30 s).
   setTimeout(() => process.exit(0), 170000).unref();
   const cerrado = new Promise((listo) => servidor.close(listo)); // No acepta más conexiones; espera a las abiertas.
   servidor.closeIdleConnections();
